@@ -25,13 +25,43 @@ voor de volledigheid:
 
 Herhaal dit voor elk account dat je wil toevoegen (mama, Amy, ...).
 
+## Firestore Database + security rules instellen (eenmalig)
+
+Vanaf stap 3 gebruikt de app ook Firestore (niet enkel Authentication). Als
+je dat nog niet eerder hebt aangemaakt:
+
+1. Firebase Console → **Firestore Database** → **Create database**.
+2. Kies een locatie (bv. `europe-west`) → start in **production mode**
+   (de rules hieronder regelen de rechten, dus dat is veilig).
+
+Daarna de security rules toepassen:
+
+1. **Firestore Database** → tab **Rules**.
+2. Plak de volledige inhoud van [firestore.rules](firestore.rules) uit dit
+   project erin (die vervangt wat er staat).
+3. **Publish**.
+
+Zonder deze stap werkt inloggen nog wel, maar faalt het ophalen/aanmaken
+van het profiel (je ziet dan een foutmelding op het startscherm i.p.v.
+"Ingelogd als ...").
+
 ## En de rol (lid/beheerder)?
 
-Op dit moment (stap 2 van het bouwplan) bepaalt een account nog geen
-rechten — iedereen die kan inloggen ziet hetzelfde simpele scherm. Vanaf
-**stap 3** (Firestore-datamodel + security rules) krijgt elk account een
-rol (`lid` of `beheerder`) die bepaalt wat ze mogen zien/doen. Zodra dat
-gebouwd is, leg ik hier ook uit hoe je die rol per account instelt.
+Zodra iemand voor het eerst inlogt, maakt de app automatisch een profiel
+aan in Firestore (collectie `gebruikers`) met rol `lid` — dat gebeurt
+bewust altijd als `lid`, want de security rules staan niet toe dat een
+account zichzelf beheerder maakt (zie firestore.rules).
 
-Voorlopig volstaat het dus om enkel de Auth-accounts (e-mail + wachtwoord)
-hierboven aan te maken voor mama en Amy; de rol koppelen we er later aan.
+**Iemand beheerder maken doe je dus handmatig, in twee klikken:**
+
+1. Firebase Console → **Firestore Database** → tab **Data** → collectie
+   `gebruikers`.
+2. Klik het document met de uid van dat account aan (je herkent het account
+   via het bijhorende e-mailadres in **Authentication** → **Users**, waar
+   ook de uid staat).
+3. Wijzig het veld `rol` van `lid` naar `beheerder` → opslaan.
+
+**Voor nu concreet:** laat `claudetest@test.com` en `wytersryan@gmail.com`
+allebei één keer inloggen in de app (zodat hun profiel aangemaakt wordt),
+en zet dan bij beide het veld `rol` op `beheerder` zoals hierboven
+beschreven. Voor mama en Amy hoeft dat niet — die blijven gewoon `lid`.

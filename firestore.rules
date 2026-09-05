@@ -1,0 +1,61 @@
+rules_version = '2';
+
+// Security rules voor het Firestore-datamodel uit PROJECT_SPEC.md, sectie 5
+// en 7. Plak dit in Firebase Console -> Firestore Database -> tab "Rules"
+// -> Publish (zie ACCOUNTS_AANMAKEN.md voor de volledige uitleg).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function eigenGebruiker(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Leest het gebruikersdocument van de ingelogde persoon om te
+    // controleren of die beheerder is. get() op je eigen document is altijd
+    // toegestaan en telt niet als omzeiling van onderstaande rules.
+    function isBeheerder() {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/gebruikers/$(request.auth.uid)).data.rol == 'beheerder';
+    }
+
+    match /gebruikers/{uid} {
+      // Iedereen leest zijn eigen profiel (nodig om naam/rol te kennen);
+      // de beheerder mag daarnaast ook alle andere profielen lezen voor het
+      // gezamenlijke overzicht.
+      allow read: if eigenGebruiker(uid) || isBeheerder();
+
+      // Een account mag zijn eigen profiel aanmaken bij de eerste keer
+      // inloggen, maar altijd met rol 'lid' - zo kan niemand zichzelf
+      // beheerder maken. Enkel de beheerder kan dat veld nadien handmatig
+      // aanpassen via de Firestore-console (dat omzeilt deze rules, want de
+      // console werkt met eigenaarsrechten).
+      allow create: if eigenGebruiker(uid) && request.resource.data.rol == 'lid';
+
+      // Je naam mag je later zelf aanpassen, maar niet je eigen rol.
+      allow update: if eigenGebruiker(uid) &&
+        request.resource.data.rol == resource.data.rol;
+
+      allow delete: if false;
+    }
+
+    match /diensten/{dienstId} {
+      // Een lid leest enkel zijn eigen diensten; de beheerder leest alles
+      // (nodig voor het gezamenlijke overzicht + printen).
+      allow read: if isSignedIn() &&
+        (resource.data.gebruikerId == request.auth.uid || isBeheerder());
+
+      // Enkel voor jezelf diensten aanmaken/wijzigen/verwijderen - ook de
+      // beheerder past niet de diensten van iemand anders aan (zie
+      // PROJECT_SPEC.md, sectie 2: beheerder mag enkel bekijken+printen).
+      allow create: if isSignedIn() &&
+        request.resource.data.gebruikerId == request.auth.uid;
+
+      allow update, delete: if isSignedIn() &&
+        resource.data.gebruikerId == request.auth.uid;
+    }
+  }
+}
