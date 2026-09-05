@@ -297,6 +297,25 @@ stap 9). Getest: overzicht gecontroleerd voor de huidige maand (leeg) en
 voor juli 2026 (Amy's + Ryan's echte shiften naast elkaar, incl. "Nacht"),
 met het beheerder-testaccount.
 
+Direct daarna nog 2 kleine correcties gevraagd door Ryan:
+- **`FormaatAParser` + lege omschrijving**: gecontroleerd, dit stond al
+  goed (`omschrijving: 'Werk'` staat onvoorwaardelijk vast in
+  `_leesDienstenUitRij`, zie `lib/pdf_import/formaat_a_parser.dart`, en
+  wordt ook getest in `formaat_a_parser_test.dart`) - geen codewijziging
+  nodig. Wat Ryan wellicht zag: zijn eigen, al langer geleden geïmporteerde
+  echte shiften in Firestore staan nog met een lege omschrijving, want die
+  zijn opgeslagen vóór deze default er was (zie de TODO-fix in commit
+  a6dab9b). Dat lost zichzelf op zodra hij zijn PDF opnieuw uploadt (het
+  vaste `{gebruikerId}_{datum}`-document-id overschrijft de oude,
+  leeg-omschreven documenten automatisch) - geen actie van mijn kant
+  mogelijk, ik mag/kan niet inloggen met zijn echte account.
+- **`DienstBewerkenScreen`**: titel "Shift bewerken" -> "Bewerken", en de
+  datum is nu nooit meer aanpasbaar in dit scherm (enkel uur +
+  omschrijving) - vroeger kon dat wel bij een handmatige dienst, dat is nu
+  bewust gelijkgetrokken voor alle bronnen. Een shift naar een andere dag
+  verplaatsen kan enkel nog door 'm te verwijderen en opnieuw toe te voegen
+  via "Toevoegen".
+
 ### Firebase-project
 
 - Project-id: `uurrooster-app`. Web-config staat in `.env` (niet

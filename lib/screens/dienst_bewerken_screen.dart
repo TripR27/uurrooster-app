@@ -8,10 +8,12 @@ import '../util/datum_util.dart';
 /// omdat een PDF-import wel eens verkeerd kan uitpakken, en sowieso
 /// omdat de app dit altijd moet toelaten (zie PROJECT_SPEC.md, sectie 1).
 ///
-/// De datum zelf is enkel aanpasbaar bij een handmatig toegevoegde dienst:
-/// een PDF-import krijgt een document-id gebaseerd op zijn datum (zie
+/// De datum is hier bewust nooit aanpasbaar (enkel uur + omschrijving) - een
+/// PDF-import krijgt een document-id gebaseerd op zijn datum (zie
 /// DienstService.slaPdfImportOp), dus die zou bij een gewijzigde datum een
-/// verweesd/verkeerd document achterlaten.
+/// verweesd/verkeerd document achterlaten; voor consistentie geldt dat nu
+/// voor élke dienst hier, ook een handmatige. Wil je een shift op een andere
+/// dag, verwijder 'm dan en voeg 'm opnieuw toe via "Toevoegen".
 class DienstBewerkenScreen extends StatefulWidget {
   const DienstBewerkenScreen({super.key, required this.dienst});
 
@@ -22,7 +24,6 @@ class DienstBewerkenScreen extends StatefulWidget {
 }
 
 class _DienstBewerkenScreenState extends State<DienstBewerkenScreen> {
-  late DateTime _datum;
   late TimeOfDay _startTijd;
   late TimeOfDay _eindTijd;
   late final TextEditingController _omschrijvingController;
@@ -30,12 +31,9 @@ class _DienstBewerkenScreenState extends State<DienstBewerkenScreen> {
   bool _bezig = false;
   String? _fout;
 
-  bool get _datumAanpasbaar => widget.dienst.bron == DienstBron.handmatig;
-
   @override
   void initState() {
     super.initState();
-    _datum = vanIsoDatum(widget.dienst.datum);
     _startTijd = _naarTimeOfDay(widget.dienst.startTijd);
     _eindTijd = _naarTimeOfDay(widget.dienst.eindTijd);
     _omschrijvingController = TextEditingController(
@@ -56,16 +54,6 @@ class _DienstBewerkenScreenState extends State<DienstBewerkenScreen> {
 
   String _naarTijdString(TimeOfDay tijd) =>
       '${tijd.hour.toString().padLeft(2, '0')}:${tijd.minute.toString().padLeft(2, '0')}';
-
-  Future<void> _kiesDatum() async {
-    final gekozen = await showDatePicker(
-      context: context,
-      initialDate: _datum,
-      firstDate: DateTime(_datum.year - 1),
-      lastDate: DateTime(_datum.year + 1),
-    );
-    if (gekozen != null) setState(() => _datum = gekozen);
-  }
 
   Future<void> _kiesTijd({required bool isStart}) async {
     final gekozen = await showTimePicker(
@@ -93,7 +81,7 @@ class _DienstBewerkenScreenState extends State<DienstBewerkenScreen> {
           id: widget.dienst.id,
           gebruikerId: widget.dienst.gebruikerId,
           gebruikerNaam: widget.dienst.gebruikerNaam,
-          datum: naarIsoDatum(_datum),
+          datum: widget.dienst.datum,
           startTijd: _naarTijdString(_startTijd),
           eindTijd: _naarTijdString(_eindTijd),
           omschrijving: _omschrijvingController.text.trim(),
@@ -152,7 +140,7 @@ class _DienstBewerkenScreenState extends State<DienstBewerkenScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Shift bewerken'),
+        title: const Text('Bewerken'),
         actions: [
           IconButton(
             icon: const Icon(Icons.delete_outline),
@@ -169,20 +157,8 @@ class _DienstBewerkenScreenState extends State<DienstBewerkenScreen> {
             ListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Datum'),
-              subtitle: Text(naarWeergaveDatum(naarIsoDatum(_datum))),
-              trailing: _datumAanpasbaar
-                  ? IconButton(
-                      icon: const Icon(Icons.edit_calendar),
-                      onPressed: _bezig ? null : _kiesDatum,
-                    )
-                  : null,
+              subtitle: Text(naarWeergaveDatum(widget.dienst.datum)),
             ),
-            if (!_datumAanpasbaar)
-              const Text(
-                'Datum is niet aanpasbaar voor een PDF-import (zie '
-                'PROJECT_SPEC.md).',
-                style: TextStyle(fontSize: 12),
-              ),
             const Divider(),
             ListTile(
               contentPadding: EdgeInsets.zero,
