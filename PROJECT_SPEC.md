@@ -272,6 +272,31 @@ echte handmatige shift aangemaakt/bekeken/verwijderd via de UI op het
 testaccount, en de kalender + dag-selectie + vooringevulde datum
 gecontroleerd tegen Amy's echte juli-shiften.
 
+Stap 8 (beheerscherm met gezamenlijk overzicht) is nu ook klaar: een
+3e kaart "Gezamenlijk overzicht" op `HomeScreen`, enkel zichtbaar als
+`profiel.isBeheerder` (zie PROJECT_SPEC.md sectie 2), opent het nieuwe
+scherm `lib/screens/beheer_overzicht_screen.dart`
+(`BeheerOverzichtScreen`). Toont een tabel (Flutter's `DataTable`, binnen
+een horizontaal + verticaal scrollbare `SingleChildScrollView` zodat het
+ook op een smal telefoonscherm werkt) met 1 kolom per gezinslid en 1 rij
+per dag - de gekozen periode is een volledige maand (eerst als week
+gebouwd, maar Ryan wou liever een maand kunnen kiezen), met
+vorige/volgende-maand-pijltjes bovenaan (Nederlandse maandnaam via
+`DateFormat.yMMMM('nl_BE')`, dezelfde locale-initialisatie als de
+kalender in `ShiftenScreen`). Nieuw in de services:
+`GebruikerService.alleGebruikers()` (leest alle `gebruikers`-documenten -
+toegestaan voor de beheerder via de bestaande `isBeheerder()`-rule in
+firestore.rules, geen aanpassing nodig) en
+`DienstService.voorPeriode(gebruikerIds, vanIso, totIso)` (net als
+`eigenDiensten` één losse `where('gebruikerId', isEqualTo: ...)`-query per
+gebruiker i.p.v. een samengestelde `whereIn` + datumfilter-query, en
+filtert/sorteert de periode dus in Dart i.p.v. in Firestore - zelfde reden
+als bij `eigenDiensten`: geen handmatig aan te maken Firestore-index
+nodig). Printen/exporteren van dit overzicht is nog niet gebouwd (dat is
+stap 9). Getest: overzicht gecontroleerd voor de huidige maand (leeg) en
+voor juli 2026 (Amy's + Ryan's echte shiften naast elkaar, incl. "Nacht"),
+met het beheerder-testaccount.
+
 ### Firebase-project
 
 - Project-id: `uurrooster-app`. Web-config staat in `.env` (niet
@@ -358,6 +383,6 @@ gecontroleerd tegen Amy's echte juli-shiften.
 
 ### Nog te doen (kort overzicht, zie sectie 10 voor volledig bouwplan)
 
-Beheerscherm met gezamenlijk overzicht, printen/PDF-export,
-styling-polish, Android-registratie in Firebase + APK-build, webversie
-hosten op Firebase Hosting.
+Printen/PDF-export van het gezamenlijke overzicht, styling-polish,
+Android-registratie in Firebase + APK-build, webversie hosten op
+Firebase Hosting.

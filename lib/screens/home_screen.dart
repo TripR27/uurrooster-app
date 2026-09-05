@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../models/gebruiker.dart';
 import '../services/gebruiker_service.dart';
 import '../theme.dart';
+import 'beheer_overzicht_screen.dart';
 import 'pdf_upload_screen.dart';
 import 'shiften_screen.dart';
 
@@ -41,7 +42,9 @@ class HomeScreen extends StatelessWidget {
                   child: Text(
                     'Kon het profiel niet laden:\n${snapshot.error}',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
                   ),
                 ),
               );
@@ -88,7 +91,8 @@ class _StartMenu extends StatelessWidget {
               _MenuKaart(
                 icoon: Icons.event_note,
                 titel: 'Shiften bekijken',
-                omschrijving: 'Je eigen shiften bekijken, corrigeren of '
+                omschrijving:
+                    'Je eigen shiften bekijken, corrigeren of '
                     'verwijderen',
                 kleur: AppKleuren.bosgroen,
                 onTap: () {
@@ -99,6 +103,22 @@ class _StartMenu extends StatelessWidget {
                   );
                 },
               ),
+              if (profiel.isBeheerder) ...[
+                const SizedBox(height: 16),
+                _MenuKaart(
+                  icoon: Icons.groups,
+                  titel: 'Gezamenlijk overzicht',
+                  omschrijving: 'Rooster van iedereen samen bekijken',
+                  kleur: AppKleuren.inkt,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const BeheerOverzichtScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ],
             ],
           ),
         ),
@@ -146,8 +166,9 @@ class _Kop extends StatelessWidget {
                   ),
                   Text(
                     'Hoi, ${profiel.naam}!',
-                    style: Theme.of(context).textTheme.headlineMedium
-                        ?.copyWith(color: Colors.white),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.headlineMedium?.copyWith(color: Colors.white),
                   ),
                   const SizedBox(height: 4),
                   Container(
@@ -231,8 +252,9 @@ class _MenuKaart extends StatelessWidget {
                   children: [
                     Text(
                       titel,
-                      style: Theme.of(context).textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w700),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(

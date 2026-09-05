@@ -20,6 +20,14 @@ class GebruikerService {
     'gebruikers',
   );
 
+  /// Alle profielen, voor het gezamenlijke overzicht (enkel de beheerder mag
+  /// dit aanroepen - zie firestore.rules, `isBeheerder()` staat lezen van
+  /// alle `gebruikers`-documenten toe voor dat account).
+  static Future<List<Gebruiker>> alleGebruikers() async {
+    final snap = await _gebruikers.get();
+    return snap.docs.map(Gebruiker.vanDocument).toList();
+  }
+
   static Future<Gebruiker> haalOfMaakProfiel(User account) async {
     final doc = await _gebruikers.doc(account.uid).get();
     if (doc.exists) {

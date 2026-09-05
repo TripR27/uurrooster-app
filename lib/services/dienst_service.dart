@@ -65,4 +65,33 @@ class DienstService {
                 ..sort((a, b) => a.datum.compareTo(b.datum)),
         );
   }
+
+  /// Alle diensten van meerdere gebruikers binnen een periode (beide data
+  /// inbegrepen) - voor het gezamenlijke overzicht van de beheerder (zie
+  /// PROJECT_SPEC.md, sectie 8).
+  ///
+  /// Doet bewust één losse query per gebruiker (zelfde `where('gebruikerId')`
+  /// als [eigenDiensten]) i.p.v. één query met `whereIn` + een datumfilter:
+  /// die combinatie zou een samengestelde Firestore-index vereisen. De
+  /// periode wordt dus, net als de sortering elders in deze klasse, gewoon
+  /// in Dart gefilterd.
+  static Future<List<Dienst>> voorPeriode({
+    required List<String> gebruikerIds,
+    required String vanIso,
+    required String totIso,
+  }) async {
+    final snapshots = await Future.wait(
+      gebruikerIds.map(
+        (id) => _diensten.where('gebruikerId', isEqualTo: id).get(),
+      ),
+    );
+    return snapshots
+        .expand((snap) => snap.docs.map(Dienst.vanDocument))
+        .where(
+          (d) =>
+              d.datum.compareTo(vanIso) >= 0 && d.datum.compareTo(totIso) <= 0,
+        )
+        .toList()
+      ..sort((a, b) => a.datum.compareTo(b.datum));
+  }
 }
