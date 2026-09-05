@@ -46,7 +46,10 @@ class Dienst {
   final String gebruikerId;
   final String gebruikerNaam;
 
-  /// ISO-formaat, bv. "2026-09-08" - makkelijk sorteren als tekst.
+  /// ISO-formaat, bv. "2026-09-08" - puur voor opslag/sortering in
+  /// Firestore, de gebruiker ziet deze string nooit rechtstreeks. Het
+  /// overzichtscherm (latere stap) formatteert dit pas naar iets leesbaars
+  /// zoals "do 9/7" op het moment dat het getoond wordt.
   final String datum;
 
   /// bv. "09:00".

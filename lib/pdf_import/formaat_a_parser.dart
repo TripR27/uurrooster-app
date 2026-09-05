@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 
 import '../models/dienst.dart';
+import 'datum_util.dart';
 import 'rooster_parser.dart';
 
 /// Herkent een tijd-cel zoals "08:30".
@@ -243,7 +244,7 @@ class FormaatAParser implements RoosterParser {
         Dienst(
           gebruikerId: gebruikerId,
           gebruikerNaam: gebruikerNaam,
-          datum: _naarIsoDatum(entry.key.datum),
+          datum: naarIsoDatum(entry.key.datum),
           startTijd: begin,
           eindTijd: eind,
           bron: DienstBron.pdfImport,
@@ -258,11 +259,4 @@ class FormaatAParser implements RoosterParser {
 
   String _normaliseer(String tekst) =>
       tekst.replaceAll(RegExp(r'\s+'), ' ').trim().toLowerCase();
-
-  String _naarIsoDatum(DateTime datum) {
-    final j = datum.year.toString().padLeft(4, '0');
-    final m = datum.month.toString().padLeft(2, '0');
-    final d = datum.day.toString().padLeft(2, '0');
-    return '$j-$m-$d';
-  }
 }
