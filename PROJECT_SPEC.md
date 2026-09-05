@@ -22,10 +22,10 @@ laten ontstaan.
 
 ## 2. Gebruikers & rollen
 
-| Rol | Wie | Rechten |
-|---|---|---|
-| Lid | ik, zus, moeder | Inloggen, eigen PDF-rooster uploaden, eigen diensten bekijken, handmatig een dienst/omschrijving toevoegen |
-| Beheerder | ik | Alles wat een lid kan + gezamenlijk overzicht van alle 3 bekijken + printen/exporteren |
+| Rol       | Wie             | Rechten                                                                                                    |
+| --------- | --------------- | ---------------------------------------------------------------------------------------------------------- |
+| Lid       | ik, zus, moeder | Inloggen, eigen PDF-rooster uploaden, eigen diensten bekijken, handmatig een dienst/omschrijving toevoegen |
+| Beheerder | ik              | Alles wat een lid kan + gezamenlijk overzicht van alle 3 bekijken + printen/exporteren                     |
 
 Iedereen heeft een eigen account. Na inloggen weet de app automatisch "wie je bent" —
 geen aparte stap nodig waarin je jezelf moet aanduiden.
@@ -33,19 +33,20 @@ geen aparte stap nodig waarin je jezelf moet aanduiden.
 ## 3. Platform & techstack
 
 **Gekozen: Flutter** (Dart), omdat dat met één codebase oplevert:
+
 - een installeerbare Android **APK** (rechtstreeks te downloaden, geen Play Store nodig) — voor wie dat wil,
 - een **webversie** (gewoon een link openen in de browser) — voor je moeder, geen installatie nodig.
 
 Dat lost de twijfel "echte app vs. webapp" in één keer op: zelfde app, twee manieren om 'm te gebruiken.
 
-| Onderdeel | Keuze | Waarom |
-|---|---|---|
-| App | Flutter | 1 codebase → Android-app én webapp, gratis, jij hebt er al ervaring mee |
-| Authenticatie | Firebase Authentication | Gratis, simpel, ingebouwde login (e-mail + wachtwoord) |
-| Database | Cloud Firestore | Gratis tier ruim voldoende voor 3 gebruikers, realtime sync tussen apparaten |
-| PDF-tekst uitlezen | `syncfusion_flutter_pdf` (Community License, gratis voor persoonlijk gebruik) | Werkt cross-platform (Android + web), kan tekst uit PDF halen zonder server |
-| Printen / PDF-export | pakketten `pdf` + `printing` | Genereert het gezamenlijke overzicht als PDF en stuurt het naar de systeem-printdialoog; werkt op Android én web |
-| Hosting webversie | Firebase Hosting | Gratis tier, integreert direct met de rest van Firebase |
+| Onderdeel            | Keuze                                                                         | Waarom                                                                                                           |
+| -------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| App                  | Flutter                                                                       | 1 codebase → Android-app én webapp, gratis, jij hebt er al ervaring mee                                          |
+| Authenticatie        | Firebase Authentication                                                       | Gratis, simpel, ingebouwde login (e-mail + wachtwoord)                                                           |
+| Database             | Cloud Firestore                                                               | Gratis tier ruim voldoende voor 3 gebruikers, realtime sync tussen apparaten                                     |
+| PDF-tekst uitlezen   | `syncfusion_flutter_pdf` (Community License, gratis voor persoonlijk gebruik) | Werkt cross-platform (Android + web), kan tekst uit PDF halen zonder server                                      |
+| Printen / PDF-export | pakketten `pdf` + `printing`                                                  | Genereert het gezamenlijke overzicht als PDF en stuurt het naar de systeem-printdialoog; werkt op Android én web |
+| Hosting webversie    | Firebase Hosting                                                              | Gratis tier, integreert direct met de rest van Firebase                                                          |
 
 **Bewust vermeden:** Firebase Cloud Functions. Dat zou een gratis-optie zijn geweest voor het
 PDF-verwerken op de achtergrond, maar vereist tegenwoordig het (betaalplan) Blaze-abonnement
@@ -73,6 +74,7 @@ apparaat zelf te verwerken (client-side), blijft alles 100% gratis zonder betaal
 ## 5. Datamodel (Firestore)
 
 **Collectie `gebruikers`** (doc-id = Firebase Auth uid)
+
 ```
 {
   naam: string,            // "Jij", "Zus", "Mama"
@@ -81,6 +83,7 @@ apparaat zelf te verwerken (client-side), blijft alles 100% gratis zonder betaal
   naamInRooster: string | null       // optioneel, hoe de naam letterlijk in de PDF staat
 }
 ```
+
 `roosterFormaat` en `naamInRooster` staan er niet automatisch bij (nieuwe
 accounts starten met enkel `naam`+`rol`, zie GebruikerService) - de beheerder
 vult die twee velden zelf handmatig in via de Firestore-console zodra
@@ -89,6 +92,7 @@ ACCOUNTS_AANMAKEN.md). Zonder die twee velden kan een account geen PDF
 importeren, maar wel manueel diensten toevoegen/wijzigen.
 
 **Collectie `diensten`**
+
 ```
 {
   gebruikerId: string,      // verwijzing naar gebruikers/{uid}
@@ -206,41 +210,26 @@ kan zonder alles opnieuw te moeten uitzoeken. Voeg hier na elke stap een
 korte samenvatting aan toe: wat gebouwd is, welke keuzes gemaakt zijn (en
 waarom), en wat er nog manueel moet gebeuren.
 
-### Eerstvolgende taak (nog NIET uitgevoerd - dit eerst doen, dan pas verder met de stappen hieronder)
-
-Gevraagd door Ryan, nog te bouwen bij het opstarten van de volgende
-chat-sessie:
-
-1. **Startscherm herindelen**: i.p.v. de huidige inline lijst + 1 knop op
-   HomeScreen, toon daar 2 duidelijke knoppen: **"PDF uploaden"** en
-   **"Shiften bekijken"**. "Shiften bekijken" opent een apart scherm met
-   wat nu inline op HomeScreen staat (de lijst + tik-om-te-bewerken, nu
-   nog rechtstreeks in `_EigenRooster` in `lib/screens/home_screen.dart`).
-2. **Terminologie "dienst" -> "shift"**: overal in de *zichtbare
-   UI-teksten* (titels, labels, knoppen, meldingen) "dienst"/"diensten"
-   vervangen door "shift"/"shiften" - bv. "Mijn diensten" -> "Mijn
-   shiften", "Dienst bewerken" -> "Shift bewerken", "Dienst
-   verwijderen?" -> "Shift verwijderen?". Dit gaat enkel over tekst die de
-   gebruiker ziet; de interne Dart-klasse `Dienst`/`DienstService`, de
-   Firestore-collectie `diensten` en bestandsnamen hoeven NIET mee
-   hernoemd te worden (geen aangevraagde scope, en de collectienaam
-   wijzigen zou de al opgeslagen data van Amy kunnen verweesen) - tenzij
-   Ryan dat achteraf alsnog expliciet vraagt.
-3. **Levendigere stijl voor het startscherm/overzicht**: dat oogt nu te
-   "zacht"/saai (effen crème achtergrond, platte tekst) vergeleken met het
-   inlogscherm (dat wél het bosgroen/terracotta-thema met een
-   brandingpaneel gebruikt, zie `lib/screens/login_screen.dart` en
-   `lib/theme.dart`). Denk aan een patroon/textuur of steviger gebruik van
-   de thema-kleuren i.p.v. gewoon een crème achtergrond met platte tekst -
-   vrij in te vullen zolang het niet meer generiek/saai oogt, in dezelfde
-   sfeer als het inlogscherm.
-
 ### Status
+
 Stap 1 t.e.m. 6 zijn klaar (zie git-historiek voor de exacte commits per
 stap). Elke stap is apart gepushed naar `main` op GitHub
 (TripR27/uurrooster-app), telkens na `flutter analyze` + `flutter test` +
 een visuele check (browser en/of automatische test tegen de echte
 PDF-bestanden in `uurroosters/`).
+
+De UI-taak die na stap 6 was blijven liggen (startscherm herindelen,
+terminologie "dienst"->"shift" in zichtbare teksten, levendigere stijl) is
+uitgevoerd: `HomeScreen` toont nu enkel nog een gekleurde kop (bosgroen
+gradient, in dezelfde sfeer als het brandingpaneel van `login_screen.dart`)
+met 2 kaarten - "PDF uploaden" en "Shiften bekijken". De vroegere inline
+lijst (`_EigenRooster`) is verhuisd naar een nieuw scherm
+`lib/screens/shiften_screen.dart` (`ShiftenScreen`), met dezelfde
+StreamBuilder-aanpak en tik-om-te-bewerken-flow als daarvoor. Zichtbare
+teksten zijn overal "shift(en)" geworden ("Mijn shiften", "Shift bewerken",
+"Shift verwijderen?", ...); de interne klasse `Dienst`/`DienstService` en de
+Firestore-collectie `diensten` zijn bewust ongewijzigd gelaten (zie
+overwegingen die hierboven stonden, nu niet meer herhaald).
 
 Stap 6 (overzicht + corrigeren) voegde toe: HomeScreen toont nu een echte
 live lijst (`DienstService.eigenDiensten`) van de ingelogde gebruiker i.p.v.
@@ -252,6 +241,7 @@ Amy live gewijzigd + teruggezet via de UI, en de lijst update meteen
 (StreamBuilder, geen refresh nodig).
 
 ### Firebase-project
+
 - Project-id: `uurrooster-app`. Web-config staat in `.env` (niet
   gecommit), gebruikt via `--dart-define-from-file=.env` (zie
   `lib/firebase_options.dart` + README.md). **Elke `flutter run`/`build`
@@ -278,6 +268,7 @@ Amy live gewijzigd + teruggezet via de UI, en de lijst update meteen
   aanwezig); dat moet nog gebeuren vlak voor de APK-build (fase 11).
 
 ### Belangrijke technische keuzes
+
 - **Firebase-package-versies gepind** (`firebase_core: 4.7.0`,
   `firebase_auth: 6.4.0`, `cloud_firestore: 6.3.0`) omdat de nieuwste
   `firebase_core_web` (3.11.0, via firebase_core ^4.14.0) een
@@ -320,6 +311,7 @@ Amy live gewijzigd + teruggezet via de UI, en de lijst update meteen
   zowel het PDF-voorbeeld als het echte overzicht.
 
 ### Stijl / voorkeuren van Ryan
+
 - Nederlandstalige comments, vrij informeel (geen droge board-room-taal).
   Ryan past de UI-teksten soms zelf aan om ze losser te maken (bv.
   "Mama's rooster app", "Zodat ons moeder ni meer hoeft te zagen!") - die
@@ -333,6 +325,7 @@ Amy live gewijzigd + teruggezet via de UI, en de lijst update meteen
   Google-wachtwoord gebruiken - enkel het expliciet gedeelde testaccount.
 
 ### Nog te doen (kort overzicht, zie sectie 10 voor volledig bouwplan)
+
 Overzichtscherm (eigen diensten bekijken + corrigeren), handmatige invoer
 zonder PDF, beheerscherm met gezamenlijk overzicht, printen/PDF-export,
 styling-polish, Android-registratie in Firebase + APK-build, webversie

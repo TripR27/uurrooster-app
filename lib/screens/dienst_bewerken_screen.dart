@@ -113,7 +113,7 @@ class _DienstBewerkenScreenState extends State<DienstBewerkenScreen> {
     final bevestigd = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Dienst verwijderen?'),
+        title: const Text('Shift verwijderen?'),
         content: Text(
           '${naarWeergaveDatum(widget.dienst.datum)}, '
           '${widget.dienst.startTijd} - ${widget.dienst.eindTijd} wordt '
@@ -152,7 +152,7 @@ class _DienstBewerkenScreenState extends State<DienstBewerkenScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dienst bewerken'),
+        title: const Text('Shift bewerken'),
         actions: [
           IconButton(
             icon: const Icon(Icons.delete_outline),
