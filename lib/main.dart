@@ -1,9 +1,12 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
+import 'auth_gate.dart';
 import 'firebase_options.dart';
 
 void main() async {
+  // Nodig omdat Firebase.initializeApp() al Flutter-bindings gebruikt
+  // vóórdat runApp() dat normaal gesproken zelf zou doen.
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
@@ -20,21 +23,9 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const HomePage(),
-    );
-  }
-}
-
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Gezinsrooster')),
-      body: const Center(
-        child: Text('Firebase is verbonden. Inlogscherm volgt in stap 2.'),
-      ),
+      // AuthGate beslist zelf of het inlogscherm of het startscherm getoond
+      // wordt, op basis van de Firebase-inlogstatus (zie auth_gate.dart).
+      home: const AuthGate(),
     );
   }
 }
