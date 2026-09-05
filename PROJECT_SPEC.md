@@ -206,6 +206,35 @@ kan zonder alles opnieuw te moeten uitzoeken. Voeg hier na elke stap een
 korte samenvatting aan toe: wat gebouwd is, welke keuzes gemaakt zijn (en
 waarom), en wat er nog manueel moet gebeuren.
 
+### Eerstvolgende taak (nog NIET uitgevoerd - dit eerst doen, dan pas verder met de stappen hieronder)
+
+Gevraagd door Ryan, nog te bouwen bij het opstarten van de volgende
+chat-sessie:
+
+1. **Startscherm herindelen**: i.p.v. de huidige inline lijst + 1 knop op
+   HomeScreen, toon daar 2 duidelijke knoppen: **"PDF uploaden"** en
+   **"Shiften bekijken"**. "Shiften bekijken" opent een apart scherm met
+   wat nu inline op HomeScreen staat (de lijst + tik-om-te-bewerken, nu
+   nog rechtstreeks in `_EigenRooster` in `lib/screens/home_screen.dart`).
+2. **Terminologie "dienst" -> "shift"**: overal in de *zichtbare
+   UI-teksten* (titels, labels, knoppen, meldingen) "dienst"/"diensten"
+   vervangen door "shift"/"shiften" - bv. "Mijn diensten" -> "Mijn
+   shiften", "Dienst bewerken" -> "Shift bewerken", "Dienst
+   verwijderen?" -> "Shift verwijderen?". Dit gaat enkel over tekst die de
+   gebruiker ziet; de interne Dart-klasse `Dienst`/`DienstService`, de
+   Firestore-collectie `diensten` en bestandsnamen hoeven NIET mee
+   hernoemd te worden (geen aangevraagde scope, en de collectienaam
+   wijzigen zou de al opgeslagen data van Amy kunnen verweesen) - tenzij
+   Ryan dat achteraf alsnog expliciet vraagt.
+3. **Levendigere stijl voor het startscherm/overzicht**: dat oogt nu te
+   "zacht"/saai (effen crème achtergrond, platte tekst) vergeleken met het
+   inlogscherm (dat wél het bosgroen/terracotta-thema met een
+   brandingpaneel gebruikt, zie `lib/screens/login_screen.dart` en
+   `lib/theme.dart`). Denk aan een patroon/textuur of steviger gebruik van
+   de thema-kleuren i.p.v. gewoon een crème achtergrond met platte tekst -
+   vrij in te vullen zolang het niet meer generiek/saai oogt, in dezelfde
+   sfeer als het inlogscherm.
+
 ### Status
 Stap 1 t.e.m. 6 zijn klaar (zie git-historiek voor de exacte commits per
 stap). Elke stap is apart gepushed naar `main` op GitHub
