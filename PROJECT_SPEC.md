@@ -12,6 +12,14 @@ Extra: bij elke dienst kan een korte vrije-tekst omschrijving toegevoegd worden
 (ook los van een PDF-import), zodat later ook privé-afspraken op het gezamenlijke
 rooster gezet kunnen worden.
 
+Elk lid kan ook een dienst die uit een PDF geïmporteerd is, achteraf handmatig
+corrigeren (bv. als er iets verkeerd is ingelezen) of gewoon zelf een dienst
+verwijderen/toevoegen zonder PDF (bv. een privé-afspraak). Hier moet doorheen
+de hele app rekening mee gehouden worden: elke Dienst heeft dus een eigen
+document-id in Firestore zodat hij later opnieuw op te zoeken en te wijzigen
+is, en de UI mag PDF-import niet als de enige manier behandelen om diensten te
+laten ontstaan.
+
 ## 2. Gebruikers & rollen
 
 | Rol | Wie | Rechten |
@@ -68,9 +76,17 @@ apparaat zelf te verwerken (client-side), blijft alles 100% gratis zonder betaal
 ```
 {
   naam: string,            // "Jij", "Zus", "Mama"
-  rol: "lid" | "beheerder"
+  rol: "lid" | "beheerder",
+  roosterFormaat: "A" | "B" | null,  // optioneel, welke RoosterParser voor dit account
+  naamInRooster: string | null       // optioneel, hoe de naam letterlijk in de PDF staat
 }
 ```
+`roosterFormaat` en `naamInRooster` staan er niet automatisch bij (nieuwe
+accounts starten met enkel `naam`+`rol`, zie GebruikerService) - de beheerder
+vult die twee velden zelf handmatig in via de Firestore-console zodra
+duidelijk is welk PDF-formaat en welke naam bij een account hoort (zie
+ACCOUNTS_AANMAKEN.md). Zonder die twee velden kan een account geen PDF
+importeren, maar wel manueel diensten toevoegen/wijzigen.
 
 **Collectie `diensten`**
 ```
@@ -89,6 +105,14 @@ apparaat zelf te verwerken (client-side), blijft alles 100% gratis zonder betaal
 Dit model is bewust "plat" en onafhankelijk van hoe een PDF eruitziet — zo kan
 elk nieuw roosterformaat er gewoon naartoe vertalen zonder dat de rest van de
 app iets hoeft te weten van PDF-lay-outs.
+
+**Document-id-afspraak:** een dienst met `bron: "pdf-import"` krijgt als
+document-id altijd `{gebruikerId}_{datum}` (dus 1 PDF-shift per dag per
+persoon). Zo overschrijft een nieuwe/herhaalde PDF-import van dezelfde
+periode gewoon de vorige waarde in plaats van duplicaten aan te maken.
+Handmatige diensten (`bron: "handmatig"`) krijgen een automatisch
+gegenereerd Firestore-id, want daar kunnen wel meerdere per dag bestaan
+(bv. een werkdienst + een privé-afspraak).
 
 ## 6. PDF-parsing strategie (uitbreidbaar per persoon/formaat)
 
@@ -143,15 +167,23 @@ kost is €0, tenzij je zelf een custom domeinnaam zou willen kopen (optioneel, 
 1. Flutter-project opzetten + Firebase-project aanmaken en koppelen (FlutterFire CLI).
 2. Inlogscherm bouwen (Firebase Auth) + de 3 accounts kunnen aanmaken.
 3. Datamodel + Firestore security rules opzetten.
-4. PDF-upload UI + tekst-extractie testen met een voorbeeld van Formaat A.
-5. `FormaatAParser` afmaken (jij/mama) → diensten wegschrijven naar Firestore.
-6. `FormaatBParser` toevoegen (zus) — nieuwe adapter, geen wijziging aan bestaande code.
-7. Overzichtscherm: eigen diensten bekijken (elk lid).
-8. Handmatige invoer: dienst/omschrijving toevoegen zonder PDF.
-9. Beheerscherm: gezamenlijk overzicht van alle 3.
-10. Printen/PDF-export van het gezamenlijke overzicht.
-11. Styling/polish, testen op alle 3 toestellen (2x Android, 1x web voor mama).
-12. APK bouwen voor rechtstreekse download + webversie hosten op Firebase Hosting.
+4. PDF-upload UI + tekst-extractie testen. Opgesplitst in de praktijk:
+   - 4.1 `FormaatAParser` (jij/mama) schrijven + testen met jouw PDF.
+   - 4.2 `FormaatBParser` (zus) schrijven + testen met haar PDF — nieuwe
+     adapter, geen wijziging aan bestaande code.
+5. Geparste diensten echt wegschrijven naar Firestore (per ingelogd account,
+   automatisch het juiste RoosterParser-formaat gebruiken).
+6. Overzichtscherm: eigen diensten bekijken (elk lid), inclusief een dienst
+   handmatig kunnen corrigeren/verwijderen als er iets fout is ingelezen.
+7. Handmatige invoer: zelf een dienst/omschrijving toevoegen zonder PDF
+   (bv. een privé-afspraak).
+8. Beheerscherm: gezamenlijk overzicht van alle 3.
+9. Printen/PDF-export van het gezamenlijke overzicht.
+10. Styling/polish, testen op alle 3 toestellen (2x Android, 1x web voor mama).
+11. APK bouwen voor rechtstreekse download + webversie hosten op Firebase Hosting.
+
+Zie sectie 13 hieronder voor een lopend logboek van wat al klaar is en
+waarom bepaalde keuzes gemaakt zijn.
 
 ## 11. Open vragen / aannames (nog te bevestigen)
 
@@ -165,3 +197,83 @@ kost is €0, tenzij je zelf een custom domeinnaam zou willen kopen (optioneel, 
 
 - Eén voorbeeld-PDF van Formaat A.
 - Eén voorbeeld-PDF van Formaat B (zus).
+
+## 13. Voortgang & belangrijk om te weten
+
+Dit is een lopend logboek, bijgehouden na elke stap - zodat een nieuwe
+Claude-chat (bv. na het opruimen van het context window) meteen weer verder
+kan zonder alles opnieuw te moeten uitzoeken. Voeg hier na elke stap een
+korte samenvatting aan toe: wat gebouwd is, welke keuzes gemaakt zijn (en
+waarom), en wat er nog manueel moet gebeuren.
+
+### Status
+Stap 1 t.e.m. 5 zijn klaar (zie git-historiek voor de exacte commits per
+stap). Elke stap is apart gepushed naar `main` op GitHub
+(TripR27/uurrooster-app), telkens na `flutter analyze` + `flutter test` +
+een visuele check (browser en/of automatische test tegen de echte
+PDF-bestanden in `uurroosters/`).
+
+### Firebase-project
+- Project-id: `uurrooster-app`. Web-config staat in `.env` (niet
+  gecommit), gebruikt via `--dart-define-from-file=.env` (zie
+  `lib/firebase_options.dart` + README.md). **Elke `flutter run`/`build`
+  moet die vlag meekrijgen, anders is Firebase niet verbonden.**
+- Firestore-security rules staan in `firestore.rules` en zijn al
+  gepubliceerd door Ryan in de Firebase Console.
+- Bestaande accounts: `wytersryan@gmail.com` (Ryan, beheerder) en
+  `claudetest@test.com` (testaccount van Ryan zelf, ook beheerder, naam
+  "Claude" - enkel voor mij om mee te testen, geen echt gezinslid). Amy en
+  mama hebben nog geen account (zie ACCOUNTS_AANMAKEN.md voor hoe die aan
+  te maken).
+- **Belangrijk:** voor een account écht een PDF-rooster kan importeren
+  moet de beheerder ook de velden `roosterFormaat` ("A" of "B") en
+  `naamInRooster` (letterlijke naam zoals in de PDF) manueel toevoegen aan
+  dat account se `gebruikers`-document in Firestore (zie sectie 5 en
+  ACCOUNTS_AANMAKEN.md) - dat gebeurt niet automatisch.
+- Android-app is nog niet geregistreerd in Firebase (enkel web-config
+  aanwezig); dat moet nog gebeuren vlak voor de APK-build (fase 11).
+
+### Belangrijke technische keuzes
+- **Firebase-package-versies gepind** (`firebase_core: 4.7.0`,
+  `firebase_auth: 6.4.0`, `cloud_firestore: 6.3.0`) omdat de nieuwste
+  `firebase_core_web` (3.11.0, via firebase_core ^4.14.0) een
+  dart2js-compilatiefout geeft op web. Niet zomaar upgraden zonder dit te
+  testen.
+- Eigen kleurenthema in `lib/theme.dart` (bosgroen/terracotta/crème,
+  Fraunces + Work Sans via `google_fonts`) - bewust NIET het standaard
+  Material 3 paars, want dat oogt meteen als "AI-starterproject".
+  `debugShowCheckedModeBanner` staat uit.
+- PDF-parsing gebeurt met `syncfusion_flutter_pdf`'s `PdfTextExtractor`,
+  op basis van x/y-positie van elk tekstwoord (niet platte tekst) - de
+  tabellen zijn enkel zo correct te ontleden. Syncfusion geeft losse
+  spaties ook als eigen "woord" terug; die moeten altijd weggefilterd
+  worden (`w.text.trim().isNotEmpty`) voor je op index/lengte rekent.
+- Elke `RoosterParser`-implementatie (`FormaatAParser`, `FormaatBParser`)
+  is getest tegen het bijhorende échte PDF-bestand in `uurroosters/` (die
+  PDF's staan gewoon mee in git, zijn niet gevoelig). Bij een nieuw
+  4e formaat: eerst met `pdfplumber` (Python) of een test tegen
+  Syncfusion de echte coördinaten/tokens bekijken vóór je de parser
+  schrijft - blind gokken op basis van platte tekst werkt niet.
+- Elke `Dienst` heeft een eigen document-id zodat hij achteraf opnieuw
+  opgezocht/gewijzigd kan worden (zie sectie 1 en 5) - dit is een
+  expliciete, blijvende eis: PDF-import is nooit de enige manier waarop
+  een dienst mag ontstaan of veranderen, de UI moet dit altijd toelaten.
+
+### Stijl / voorkeuren van Ryan
+- Nederlandstalige comments, vrij informeel (geen droge board-room-taal).
+  Ryan past de UI-teksten soms zelf aan om ze losser te maken (bv.
+  "Mama's rooster app", "Zodat ons moeder ni meer hoeft te zagen!") - die
+  aanpassingen blijven staan, niet terugzetten naar iets formeels.
+  Redundante code en TODO-comments die Ryan zelf in de code zet, altijd
+  even nakijken voor je verdergaat aan een nieuwe stap.
+- Na elke stap: `flutter analyze` + `flutter test` + een visuele/
+  functionele check (browser-tool of een test tegen een echt bestand),
+  dan pas committen en pushen naar `main` (geen aparte branches).
+- Nooit een account/wachtwoord voor Ryan aanmaken of zijn echte
+  Google-wachtwoord gebruiken - enkel het expliciet gedeelde testaccount.
+
+### Nog te doen (kort overzicht, zie sectie 10 voor volledig bouwplan)
+Overzichtscherm (eigen diensten bekijken + corrigeren), handmatige invoer
+zonder PDF, beheerscherm met gezamenlijk overzicht, printen/PDF-export,
+styling-polish, Android-registratie in Firebase + APK-build, webversie
+hosten op Firebase Hosting.

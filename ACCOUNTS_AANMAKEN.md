@@ -65,3 +65,25 @@ account zichzelf beheerder maakt (zie firestore.rules).
 allebei één keer inloggen in de app (zodat hun profiel aangemaakt wordt),
 en zet dan bij beide het veld `rol` op `beheerder` zoals hierboven
 beschreven. Voor mama en Amy hoeft dat niet — die blijven gewoon `lid`.
+
+## PDF-rooster koppelen aan een account
+
+Om een PDF te kunnen uploaden moet een account weten welk formaat zijn PDF
+heeft én hoe zijn naam daarin geschreven staat. Dat staat ook niet
+automatisch klaar — zelfde plek als hierboven, twee velden erbij:
+
+1. Firebase Console → **Firestore Database** → tab **Data** → collectie
+   `gebruikers` → het document van dat account.
+2. Voeg 2 velden toe (**+ Add field**):
+   - `roosterFormaat` (string): `A` voor het formaat van Ryan/mama
+     (horizontale tabel, dag-kolommen), `B` voor het formaat van Amy
+     (datums als tekst in de linkerkolom, per persoon een aparte kolom).
+   - `naamInRooster` (string): letterlijk hoe die persoon in de PDF
+     genoemd wordt. Voor formaat A is dat "Achternaam, Voornaam" (bv.
+     `Wyters, Ryan`), voor formaat B gewoon de voornaam zoals die boven
+     de kolom staat (bv. `Amy`).
+3. Opslaan.
+
+Zonder deze 2 velden kan dat account nog wel inloggen en (later) manueel
+diensten toevoegen, maar geen PDF importeren — het scherm toont dan een
+duidelijke melding i.p.v. de upload-knop.

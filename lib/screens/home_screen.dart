@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../models/gebruiker.dart';
 import '../services/gebruiker_service.dart';
-import 'pdf_test_screen.dart';
+import 'pdf_upload_screen.dart';
 
 /// Startscherm na het inloggen.
 ///
@@ -75,15 +75,15 @@ class HomeScreen extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: 24),
-                // Tijdelijke knop voor stap 4.1: PDF-parsing uitproberen.
-                // Verdwijnt zodra het echte overzichtscherm er is.
                 OutlinedButton(
                   onPressed: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const PdfTestScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => PdfUploadScreen(profiel: profiel),
+                      ),
                     );
                   },
-                  child: const Text('PDF-rooster testen'),
+                  child: const Text('PDF-rooster uploaden'),
                 ),
               ],
             );
