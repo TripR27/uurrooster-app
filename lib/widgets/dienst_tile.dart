@@ -20,11 +20,7 @@ class DienstTile extends StatelessWidget {
       onTap: onTap,
       leading: const Icon(Icons.calendar_today),
       title: Text(naarWeergaveDatum(dienst.datum)),
-      subtitle: Text(
-        dienst.omschrijving.isEmpty
-            ? '${dienst.startTijd} - ${dienst.eindTijd}'
-            : '${dienst.startTijd} - ${dienst.eindTijd} (${dienst.omschrijving})',
-      ),
+      subtitle: Text(dienst.naarTekst()),
       trailing: onTap == null ? null : const Icon(Icons.chevron_right),
     );
   }

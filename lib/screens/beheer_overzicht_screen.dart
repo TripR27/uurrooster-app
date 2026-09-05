@@ -3,17 +3,17 @@ import 'package:intl/intl.dart';
 
 import '../models/dienst.dart';
 import '../models/gebruiker.dart';
+import '../print/overzicht_html.dart';
+import '../print/printen.dart';
 import '../services/dienst_service.dart';
 import '../services/gebruiker_service.dart';
 import '../theme.dart';
 import '../util/datum_util.dart';
 
-const _dagAfkortingen = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'];
-
 /// Gezamenlijk overzicht van alle gezinsleden, enkel voor de beheerder (zie
 /// PROJECT_SPEC.md sectie 2 en 8) - een tabel met 1 kolom per persoon en 1
-/// rij per dag van de gekozen maand. Printen/exporteren is een latere stap
-/// (sectie 9), dit scherm toont enkel het overzicht zelf.
+/// rij per dag van de gekozen maand, met een knop om dat rechtstreeks af te
+/// drukken (sectie 9, zie `_printen` hieronder).
 class BeheerOverzichtScreen extends StatefulWidget {
   const BeheerOverzichtScreen({super.key});
 
@@ -24,6 +24,7 @@ class BeheerOverzichtScreen extends StatefulWidget {
 class _BeheerOverzichtScreenState extends State<BeheerOverzichtScreen> {
   late DateTime _maandStart;
   late Future<_Overzicht> _overzicht;
+  bool _bezigMetPrinten = false;
 
   @override
   void initState() {
@@ -58,10 +59,50 @@ class _BeheerOverzichtScreenState extends State<BeheerOverzichtScreen> {
     });
   }
 
+  /// Bouwt de HTML van de huidig geladen maand (zie
+  /// `lib/print/overzicht_html.dart`) en stuurt die rechtstreeks naar de
+  /// systeem-printdialoog (`lib/print/printen.dart`) - geen tussenstap via
+  /// opslaan/downloaden.
+  Future<void> _printen() async {
+    setState(() => _bezigMetPrinten = true);
+    try {
+      final overzicht = await _overzicht;
+      final html = bouwOverzichtHtml(
+        maandStart: _maandStart,
+        gebruikers: overzicht.gebruikers,
+        diensten: overzicht.diensten,
+      );
+      printHtml(html);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Kon niet printen: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _bezigMetPrinten = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Gezamenlijk overzicht')),
+      appBar: AppBar(
+        title: const Text('Gezamenlijk overzicht'),
+        actions: [
+          IconButton(
+            icon: _bezigMetPrinten
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.print_outlined),
+            tooltip: 'Printen',
+            onPressed: _bezigMetPrinten ? null : _printen,
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Container(
@@ -160,11 +201,7 @@ class _BeheerOverzichtScreenState extends State<BeheerOverzichtScreen> {
     final dagIso = naarIsoDatum(dag);
     return DataRow(
       cells: [
-        DataCell(
-          Text(
-            '${_dagAfkortingen[dag.weekday - 1]} ${naarWeergaveDatum(dagIso).substring(0, 5)}',
-          ),
-        ),
+        DataCell(Text(naarDagLabel(dag))),
         for (final gebruiker in gebruikers)
           DataCell(
             _CelInhoud(
@@ -197,11 +234,7 @@ class _CelInhoud extends StatelessWidget {
         for (final dienst in diensten)
           Padding(
             padding: const EdgeInsets.only(bottom: 2),
-            child: Text(
-              dienst.omschrijving.isEmpty
-                  ? '${dienst.startTijd} - ${dienst.eindTijd}'
-                  : '${dienst.startTijd} - ${dienst.eindTijd}\n(${dienst.omschrijving})',
-            ),
+            child: Text(dienst.naarTekst(scheidingVoorOmschrijving: '\n')),
           ),
       ],
     );

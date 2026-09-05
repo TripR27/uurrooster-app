@@ -77,6 +77,16 @@ class Dienst {
     );
   }
 
+  /// bv. "09:00 - 17:00 (Werk)" - gedeeld tussen [DienstTile], het
+  /// gezamenlijke overzicht en de PDF-export ervan. [scheidingVoorOmschrijving]
+  /// laat toe de omschrijving op een nieuwe regel te zetten i.p.v. een spatie.
+  String naarTekst({String scheidingVoorOmschrijving = ' '}) {
+    final tijd = '$startTijd - $eindTijd';
+    return omschrijving.isEmpty
+        ? tijd
+        : '$tijd$scheidingVoorOmschrijving($omschrijving)';
+  }
+
   Map<String, dynamic> naarDocument() => {
     'gebruikerId': gebruikerId,
     'gebruikerNaam': gebruikerNaam,

@@ -11,7 +11,11 @@ String naarIsoDatum(DateTime datum) {
 /// Het omgekeerde van [naarIsoDatum].
 DateTime vanIsoDatum(String iso) {
   final delen = iso.split('-');
-  return DateTime(int.parse(delen[0]), int.parse(delen[1]), int.parse(delen[2]));
+  return DateTime(
+    int.parse(delen[0]),
+    int.parse(delen[1]),
+    int.parse(delen[2]),
+  );
 }
 
 /// Formatteert een ISO-datum ("2026-07-04") als "04-07-2026", voor op het
@@ -20,3 +24,12 @@ String naarWeergaveDatum(String isoDatum) {
   final delen = isoDatum.split('-');
   return '${delen[2]}-${delen[1]}-${delen[0]}';
 }
+
+/// Nederlandse dag-afkortingen, index 0 = maandag (zie [DateTime.weekday]).
+const dagAfkortingen = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'];
+
+/// Compact dag-label voor een tabelrij, bv. "ma 08-07" - gedeeld tussen het
+/// gezamenlijke overzicht (BeheerOverzichtScreen) en de PDF-export ervan.
+String naarDagLabel(DateTime dag) =>
+    '${dagAfkortingen[dag.weekday - 1]} '
+    '${naarWeergaveDatum(naarIsoDatum(dag)).substring(0, 5)}';

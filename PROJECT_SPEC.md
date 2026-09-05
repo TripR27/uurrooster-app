@@ -316,6 +316,73 @@ Direct daarna nog 2 kleine correcties gevraagd door Ryan:
   verplaatsen kan enkel nog door 'm te verwijderen en opnieuw toe te voegen
   via "Toevoegen".
 
+Stap 9 (printen) is nu ook klaar, met 2 afwijkingen van het oorspronkelijke
+plan in sectie 3 - allebei bewust, zie hieronder:
+
+1. De packages `pdf` + `printing` blijken onbruikbaar - hun
+   `xml`-dependency botst onoplosbaar met `syncfusion_flutter_pdf` (die
+   `xml ^7.0.1` vereist; elke `pdf`/`printing`-versie die dat aankan,
+   vereist op zijn beurt Dart SDK >=3.12, terwijl dit project op 3.11.5
+   zit).
+2. Ryan wou achteraf geen downloadbare/opslaanbare PDF, maar een knop die
+   meteen de systeem-printdialoog opent - en zelf voorgesteld om daarvoor
+   gewoon HTML te gebruiken i.p.v. PDF, "wat voor mij het makkelijkst is".
+
+Eerst gebouwd met `syncfusion_flutter_pdf` (die kan ook schrijven, niet
+enkel lezen: `PdfDocument`/`PdfGrid`) + `FilePicker.saveFile` om op te
+slaan - werkte, maar loste punt 2 niet op. Vervangen door een
+HTML-gebaseerde aanpak (Ryans suggestie), die dat wél oplost:
+- `lib/print/overzicht_html.dart` (`bouwOverzichtHtml`, pure Dart, geen
+  Flutter-afhankelijkheid) bouwt een zelfstandige HTML-pagina: titel
+  bovenaan, daaronder een tabel met dezelfde kolommen/rijen als het scherm
+  zelf. Op uitdrukkelijke vraag van Ryan: de dag-kolom en de naam-header
+  hebben een lichtgrijs vakje + dikkere tekst (CSS-klasse, zie `_stijl` in
+  dat bestand) voor meer visueel onderscheid met de gewone databalken.
+  Gebruikersinvoer (naam, omschrijving) wordt ge-escaped (`_escape`) zodat
+  een rare tekens in bv. een omschrijving de tabel niet kan breken.
+- `lib/print/printen.dart` + `printen_web.dart` + `printen_stub.dart`: een
+  conditional-import-opzet (`export ... if (dart.library.html) ...`, het
+  standaardpatroon in Flutter voor platform-specifieke code) rond een
+  functie `printHtml(String html)`. De web-implementatie gebruikt
+  `package:web` + `dart:js_interop` (al transitief aanwezig via de
+  Firebase-webpackages, dus geen nieuwe dependency-conflicten) om de HTML
+  in een onzichtbare iframe te laden en daarop `window.print()` aan te
+  roepen - de bekende truc om iets anders dan de huidige pagina te printen
+  zonder ernaartoe te navigeren. **Bewust niet `dart:html`/`dart:js_util`
+  geprobeerd**: die zijn voor de analyzer in een gemengd Flutter-project
+  (web + Android) ofwel onvolledig getypeerd (`Window`/`Document` missen
+  dan `print`/`focus`/`open`/`write`/`close`) ofwel volledig onvindbaar
+  (`dart:js_util`), ondanks dat de onderliggende JS-methodes wél bestaan -
+  `package:web` is hiervoor de moderne, volledig getypeerde vervanger.
+  Android (en elk ander niet-webplatform) heeft dit nog niet: de stub
+  gooit een duidelijke `UnsupportedError` i.p.v. een knop die stilzwijgend
+  niks doet - in de praktijk is de beheerder (Ryan) toch enkel via de
+  webversie aan het printen, aangezien dat is waar een printer op
+  aangesloten staat.
+- `BeheerOverzichtScreen`: het PDF-icoontje in de AppBar is een
+  print-icoontje geworden, roept nu `_printen()` (bouwt de HTML, geeft ze
+  door aan `printHtml`) i.p.v. `_exporteren()` aan.
+
+De oude PDF-aanpak (`lib/pdf_export/`, `test/pdf_export/`,
+`FilePicker.saveFile`-gebruik) is volledig verwijderd i.p.v. laten staan
+als dode code. Kleine opruiming die hierbij (al bij de eerste PDF-versie)
+hoorde, en die nu ook door de HTML-versie hergebruikt wordt (een 3e
+bijna-identieke tijd+omschrijving-tekststring dreigde te ontstaan):
+`Dienst.naarTekst()` in `lib/models/dienst.dart` is de ene gedeelde plek
+daarvoor (gebruikt door `DienstTile`, `BeheerOverzichtScreen` en de
+HTML-export), en `naarDagLabel()` in `lib/util/datum_util.dart` idem voor
+het "ma 08-07" dag-label. Getest: `test/print/overzicht_html_test.dart`
+(nieuw, controleert titel/kolommen/rijen + dat gebruikersinvoer ge-escaped
+wordt) + een echte print van juli 2026 gedaan via de UI met het
+beheerder-testaccount (Ryan heeft zelf de "opslaan als PDF"-uitvoer van
+zijn browser-printdialoog nagekeken: past nu zelfs op 1 A4-pagina, mooie
+lay-out).
+
+`.gitignore` heeft nu ook een regel voor `uurroosters/` (alles negeren
+behalve de 2 echte, al getrackte PDF's) - puur om te voorkomen dat
+test-exports die je daar zelf in zet om na te kijken (zoals hierboven)
+per ongeluk meegecommit worden bij een volgende `git add`.
+
 ### Firebase-project
 
 - Project-id: `uurrooster-app`. Web-config staat in `.env` (niet
@@ -402,6 +469,5 @@ Direct daarna nog 2 kleine correcties gevraagd door Ryan:
 
 ### Nog te doen (kort overzicht, zie sectie 10 voor volledig bouwplan)
 
-Printen/PDF-export van het gezamenlijke overzicht, styling-polish,
-Android-registratie in Firebase + APK-build, webversie hosten op
-Firebase Hosting.
+Styling-polish, Android-registratie in Firebase + APK-build, webversie
+hosten op Firebase Hosting.

@@ -1,5 +1,13 @@
 .env
 
+# Test-exports/downloads die je hier zelf in zet om na te kijken (bv. een
+# geëxporteerd rooster) - de echte PDF-roosters (uurrooster-ryan.pdf,
+# uurrooster-zus.pdf) staan al vóór deze regel getrackt en blijven dat: dit
+# voorkomt enkel dat NIEUWE bestanden hier per ongeluk meegecommit worden.
+uurroosters/*
+!uurroosters/uurrooster-ryan.pdf
+!uurroosters/uurrooster-zus.pdf
+
 # Flutter/Dart
 .dart_tool/
 .flutter-plugin-dependencies
