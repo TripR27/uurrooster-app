@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../models/gebruiker.dart';
 import '../services/gebruiker_service.dart';
+import 'pdf_test_screen.dart';
 
 /// Startscherm na het inloggen.
 ///
@@ -22,7 +23,7 @@ class HomeScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Gezinsrooster'),
+        title: const Text('Mama\'s rooster app'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -72,6 +73,17 @@ class HomeScreen extends StatelessWidget {
                 Text(
                   profiel.isBeheerder ? 'Rol: beheerder' : 'Rol: lid',
                   style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 24),
+                // Tijdelijke knop voor stap 4.1: PDF-parsing uitproberen.
+                // Verdwijnt zodra het echte overzichtscherm er is.
+                OutlinedButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const PdfTestScreen()),
+                    );
+                  },
+                  child: const Text('PDF-rooster testen'),
                 ),
               ],
             );

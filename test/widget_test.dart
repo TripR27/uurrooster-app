@@ -12,7 +12,7 @@ void main() {
     // een widget-test zonder mocking.
     await tester.pumpWidget(const MaterialApp(home: LoginScreen()));
 
-    expect(find.text('E-mailadres'), findsOneWidget);
+    expect(find.text('E-mail'), findsOneWidget);
     expect(find.text('Wachtwoord'), findsOneWidget);
     // "Inloggen" komt twee keer voor (AppBar-titel + knoptekst), dus zoeken
     // we specifiek naar de knop.

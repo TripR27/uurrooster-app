@@ -158,14 +158,14 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             Text('Inloggen', style: Theme.of(context).textTheme.headlineMedium),
             const SizedBox(height: 8),
-            const Text('Log in met het account dat de beheerder voor je heeft aangemaakt.'),
+            const Text('Log in met je email'),
             const SizedBox(height: 32),
             TextFormField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
               autofillHints: const [AutofillHints.email],
               decoration: const InputDecoration(
-                labelText: 'E-mailadres',
+                labelText: 'E-mail',
                 prefixIcon: Icon(Icons.mail_outline),
               ),
               validator: (waarde) {
@@ -187,13 +187,17 @@ class _LoginScreenState extends State<LoginScreen> {
                 prefixIcon: const Icon(Icons.lock_outline),
                 suffixIcon: IconButton(
                   icon: Icon(
-                    _wachtwoordZichtbaar ? Icons.visibility_off : Icons.visibility,
+                    _wachtwoordZichtbaar
+                        ? Icons.visibility_off
+                        : Icons.visibility,
                   ),
                   tooltip: _wachtwoordZichtbaar
                       ? 'Wachtwoord verbergen'
                       : 'Wachtwoord tonen',
                   onPressed: () {
-                    setState(() => _wachtwoordZichtbaar = !_wachtwoordZichtbaar);
+                    setState(
+                      () => _wachtwoordZichtbaar = !_wachtwoordZichtbaar,
+                    );
                   },
                 ),
               ),
@@ -254,7 +258,7 @@ class _BrandingPaneel extends StatelessWidget {
             Icon(Icons.calendar_month, color: AppKleuren.terracotta, size: 48),
             SizedBox(height: 24),
             Text(
-              'Gezinsrooster',
+              'Mama\'s rooster app',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 36,
@@ -263,7 +267,7 @@ class _BrandingPaneel extends StatelessWidget {
             ),
             SizedBox(height: 12),
             Text(
-              'Alle werkroosters van het gezin op één plek.',
+              'Zodat ons moeder ni meer hoeft te zagen!',
               style: TextStyle(color: Colors.white70, fontSize: 16),
             ),
           ],
@@ -289,7 +293,7 @@ class _BrandingBanner extends StatelessWidget {
           Icon(Icons.calendar_month, color: AppKleuren.terracotta, size: 36),
           SizedBox(height: 12),
           Text(
-            'Gezinsrooster',
+            'Mama\'s rooster app',
             style: TextStyle(
               color: Colors.white,
               fontSize: 26,
