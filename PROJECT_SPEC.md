@@ -629,8 +629,19 @@ handmatig slepen meer nodig per versie):**
    elke nieuwe build rechtstreeks te versturen, zonder tussenkomst van
    Ryan per keer.
 
+Alles hierboven ook nog eens end-to-end geverifieerd op een echte
+Android-emulator (`flutter emulators --launch`, gestart vanaf deze
+machine) i.p.v. enkel de browser: ingelogd met het testaccount, het
+"Volgende shift"-kaartje, de kalender, en vooral de printknop op
+`BeheerOverzichtScreen` - Android's systeem-deelscherm opende met
+`rooster-2026-07.pdf` en "Printen" stond er letterlijk tussen de opties,
+dus de eerder kapotte Android-print is nu bevestigd werkend (verder dan
+dat kan ik niet testen, de emulator heeft geen echte printer
+geconfigureerd).
+
 ### Nog te doen (kort overzicht, zie sectie 10 voor volledig bouwplan)
 
-Styling-polish (lopend). Firebase App Distribution (zie actiepunt
-hierboven). Webversie hosten op Firebase Hosting: **niet nodig** van
-Ryan (enkel de APK is gewenst), dus geschrapt uit het bouwplan.
+Styling-polish: klaar voor deze ronde, tenzij Ryan na verder testen nog
+iets aanwijst. Firebase App Distribution (zie actiepunt hierboven).
+Webversie hosten op Firebase Hosting: **niet nodig** van Ryan (enkel de
+APK is gewenst), dus geschrapt uit het bouwplan.
