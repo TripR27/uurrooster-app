@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import '../models/dienst.dart';
 import '../models/gebruiker.dart';
 import '../services/dienst_service.dart';
+import '../widgets/dienst_tile.dart';
 
 /// Scherm om het eigen PDF-rooster te uploaden: kiest het juiste
 /// RoosterParser-formaat automatisch op basis van het profiel (zie
 /// Gebruiker.maakParser()), toont een voorbeeld van wat eruit gehaald
-/// wordt, en slaat dat pas op na bevestiging.
+/// wordt, en slaat dat pas op na bevestiging. Nadien terug te vinden (en
+/// te corrigeren) op het overzichtscherm.
 class PdfUploadScreen extends StatefulWidget {
   const PdfUploadScreen({super.key, required this.profiel});
 
@@ -108,10 +110,21 @@ class _PdfUploadScreenState extends State<PdfUploadScreen> {
               ),
             if (_voorbeeld != null) ...[
               Text(
-                '${_voorbeeld!.length} shiften gevonden:',
+                _opgeslagen
+                    ? '${_voorbeeld!.length} shiften opgeslagen. Ga terug '
+                          'naar het startscherm om ze te bekijken of te '
+                          'corrigeren.'
+                    : '${_voorbeeld!.length} shiften gevonden:',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              Expanded(child: _dienstenLijst(_voorbeeld!)),
+              if (!_opgeslagen)
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: _voorbeeld!.length,
+                    itemBuilder: (context, i) =>
+                        DienstTile(dienst: _voorbeeld![i]),
+                  ),
+                ),
               const SizedBox(height: 16),
               FilledButton(
                 onPressed: _bezig || _opgeslagen ? null : _opslaan,
@@ -126,64 +139,10 @@ class _PdfUploadScreenState extends State<PdfUploadScreen> {
                       )
                     : Text(_opgeslagen ? 'Opgeslagen' : 'Opslaan'),
               ),
-            ] else ...[
-              const SizedBox(height: 8),
-              const Text('Al opgeslagen:'),
-              Expanded(child: _alOpgeslagenLijst()),
             ],
           ],
         ),
       ),
     );
-  }
-
-  /// Toont wat er voor dit account al opgeslagen staat - vooral handig om
-  /// meteen te zien of een upload effectief goed wegschrijft.
-  Widget _alOpgeslagenLijst() {
-    return StreamBuilder<List<Dienst>>(
-      stream: DienstService.eigenDiensten(widget.profiel.uid),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return Text(
-            'Kon niet laden: ${snapshot.error}',
-            style: TextStyle(color: Theme.of(context).colorScheme.error),
-          );
-        }
-        return _dienstenLijst(snapshot.data ?? []);
-      },
-    );
-  }
-
-  Widget _dienstenLijst(List<Dienst> diensten) {
-    if (diensten.isEmpty) {
-      return const Text('Geen shiften gevonden.');
-    }
-    return ListView.builder(
-      itemCount: diensten.length,
-      itemBuilder: (context, i) {
-        final d = diensten[i];
-        return ListTile(
-          dense: true,
-          leading: const Icon(Icons.calendar_today),
-          title: Text(_naarWeergaveDatum(d.datum)),
-          subtitle: Text(
-            d.omschrijving.isEmpty
-                ? '${d.startTijd} - ${d.eindTijd}'
-                : '${d.startTijd} - ${d.eindTijd} (${d.omschrijving})',
-          ),
-        );
-      },
-    );
-  }
-
-  /// Zet het opgeslagen ISO-formaat ("2026-07-04") om naar "04-07-2026"
-  /// voor op het scherm - de ISO-tekst zelf blijft intern gebruikt voor
-  /// opslag/sortering (zie models/dienst.dart).
-  String _naarWeergaveDatum(String isoDatum) {
-    final delen = isoDatum.split('-');
-    return '${delen[2]}-${delen[1]}-${delen[0]}';
   }
 }

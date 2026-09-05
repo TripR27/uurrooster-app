@@ -22,9 +22,22 @@ class DienstService {
     await batch.commit();
   }
 
+  /// Werkt een bestaande dienst bij (bv. een verkeerd ingelezen uur
+  /// corrigeren) - [dienst.id] moet dus al bestaan.
+  static Future<void> bijwerken(Dienst dienst) async {
+    assert(dienst.id != null, 'bijwerken() kan enkel op een bestaande dienst');
+    await _diensten.doc(dienst.id).update(dienst.naarDocument());
+  }
+
+  /// Verwijdert een dienst (bv. een fout ingelezen dag, of een privé-
+  /// afspraak die niet meer doorgaat).
+  static Future<void> verwijderen(String dienstId) async {
+    await _diensten.doc(dienstId).delete();
+  }
+
   /// Alle diensten van één gebruiker, oplopend gesorteerd op datum. Gebruikt
-  /// door het overzichtscherm (latere stap) en om een PDF-import hier al
-  /// meteen te kunnen verifiëren.
+  /// door het overzichtscherm en om een PDF-import hier al meteen te kunnen
+  /// verifiëren.
   ///
   /// Sorteert bewust in Dart i.p.v. met `.orderBy('datum')` in de query:
   /// dat laatste zou een samengestelde Firestore-index vereisen (gelijkheid

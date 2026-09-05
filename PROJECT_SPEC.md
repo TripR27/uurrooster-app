@@ -207,11 +207,20 @@ korte samenvatting aan toe: wat gebouwd is, welke keuzes gemaakt zijn (en
 waarom), en wat er nog manueel moet gebeuren.
 
 ### Status
-Stap 1 t.e.m. 5 zijn klaar (zie git-historiek voor de exacte commits per
+Stap 1 t.e.m. 6 zijn klaar (zie git-historiek voor de exacte commits per
 stap). Elke stap is apart gepushed naar `main` op GitHub
 (TripR27/uurrooster-app), telkens na `flutter analyze` + `flutter test` +
 een visuele check (browser en/of automatische test tegen de echte
 PDF-bestanden in `uurroosters/`).
+
+Stap 6 (overzicht + corrigeren) voegde toe: HomeScreen toont nu een echte
+live lijst (`DienstService.eigenDiensten`) van de ingelogde gebruiker i.p.v.
+enkel "Ingelogd als ...". Elke rij (gedeeld widgetje `DienstTile`) opent
+`DienstBewerkenScreen`: tijden + omschrijving aanpassen, of verwijderen
+(met bevestigingsdialoog). Datum is bewust niet aanpasbaar bij een
+PDF-import (zie hieronder bij document-id). Getest: een echte dienst van
+Amy live gewijzigd + teruggezet via de UI, en de lijst update meteen
+(StreamBuilder, geen refresh nodig).
 
 ### Firebase-project
 - Project-id: `uurrooster-app`. Web-config staat in `.env` (niet
@@ -268,9 +277,18 @@ PDF-bestanden in `uurroosters/`).
   shiften krijgen `'Werk'`, een nachtshift (Formaat B, code "N") krijgt
   `'Nacht'`. `Dienst.datum` blijft intern ISO ("2026-07-04") voor opslag/
   sortering, maar UI-schermen tonen dat aan de gebruiker altijd als
-  "DD-MM-JJJJ" (zie `PdfUploadScreen._naarWeergaveDatum`) - en gebruik
-  nergens het woord "Firestore" in tekst die mama/Amy te zien krijgen,
-  dat zegt hen niks (gewoon "opslaan").
+  "DD-MM-JJJJ" (`naarWeergaveDatum` in `lib/util/datum_util.dart` - gedeeld
+  hulpbestand, niet meer in `pdf_import/` want ook schermen gebruiken het
+  nu) - en gebruik nergens het woord "Firestore" in tekst die mama/Amy te
+  zien krijgen, dat zegt hen niks (gewoon "opslaan").
+- Tijden altijd 24u-notatie (07:00, geen AM/PM) - ingesteld via een
+  `MediaQuery`-override (`alwaysUse24HourFormat: true`) in de
+  `MaterialApp.builder` in `lib/main.dart`, geldt dus automatisch voor elke
+  `showTimePicker` in de app, ongeacht systeeminstellingen van het
+  toestel.
+- Gedeelde widgets/helpers i.p.v. kopiëren: `DienstTile`
+  (`lib/widgets/dienst_tile.dart`) toont één dienst-rij, gebruikt door
+  zowel het PDF-voorbeeld als het echte overzicht.
 
 ### Stijl / voorkeuren van Ryan
 - Nederlandstalige comments, vrij informeel (geen droge board-room-taal).

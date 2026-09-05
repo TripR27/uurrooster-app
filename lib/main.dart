@@ -22,6 +22,16 @@ class MyApp extends StatelessWidget {
       title: 'Gezinsrooster',
       theme: AppTheme.light,
       debugShowCheckedModeBanner: false,
+      // Altijd 24u-notatie (07:00, 17:00, ...) i.p.v. AM/PM - overal in de
+      // app waar een tijd getoond/gekozen wordt (bv. showTimePicker in
+      // DienstBewerkenScreen), ongeacht de systeeminstelling van het
+      // toestel.
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+          child: child!,
+        );
+      },
       // AuthGate beslist zelf of het inlogscherm of het startscherm getoond
       // wordt, op basis van de Firebase-inlogstatus (zie auth_gate.dart).
       home: const AuthGate(),

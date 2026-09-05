@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 
 import '../models/dienst.dart';
-import 'datum_util.dart';
+import '../util/datum_util.dart';
 import 'rooster_parser.dart';
 
 /// Herkent een uur-cel: een heel getal ("11") of een decimaal met komma
