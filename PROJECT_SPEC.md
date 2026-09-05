@@ -383,6 +383,30 @@ behalve de 2 echte, al getrackte PDF's) - puur om te voorkomen dat
 test-exports die je daar zelf in zet om na te kijken (zoals hierboven)
 per ongeluk meegecommit worden bij een volgende `git add`.
 
+Meteen daarna nog 2 kleine correcties aan de print-CSS op vraag van Ryan
+(na zelf eens afgedrukt te hebben): lettergrootte van de tabel 12px ->
+14px (`th, td` in `lib/print/overzicht_html.dart`), en de "-" in een lege
+dag/persoon-cel weggehaald (gewoon een lege cel i.p.v. een streepje).
+
+Stap 10 (styling-polish) is ook gestart, met 2 concrete dingen die Ryan
+vroeg:
+- **Lege ruimte onder de menukaarten op `HomeScreen`**: opgevuld met een
+  nieuwe "Volgende shift"-kaart (`_VolgendeShiftKaart` in
+  `lib/screens/home_screen.dart`), die via dezelfde
+  `DienstService.eigenDiensten`-stream als `ShiftenScreen` de
+  eerstvolgende dienst (vandaag of later) van de ingelogde gebruiker
+  toont - "Vandaag"/"Morgen" i.p.v. een kale datum waar relevant, en een
+  nette "Niks gepland"-tekst als er niks aankomt. Bewust functioneel
+  i.p.v. puur decoratief, zoals gevraagd ("nog wel functioneel").
+- **`PdfUploadScreen`** kreeg dezelfde bosgroene kop-banner als
+  `ShiftenScreen`/`BeheerOverzichtScreen` (was het enige overgebleven
+  scherm met een vlakke witte achtergrond).
+
+Geen foto's/afbeeldingen nodig gehad hiervoor (icoon+kleur volstond,
+consistent met de rest van de app) - Ryan had aangeboden er een aan te
+leveren, maar dat blijft een optie voor later als er een concrete plek
+voor is.
+
 ### Firebase-project
 
 - Project-id: `uurrooster-app`. Web-config staat in `.env` (niet

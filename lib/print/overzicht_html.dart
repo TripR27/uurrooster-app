@@ -19,9 +19,9 @@ const _maandNamen = [
 
 const _stijl = '''
   body { font-family: Arial, Helvetica, sans-serif; color: #111; margin: 24px; }
-  h1 { font-size: 18px; margin-bottom: 16px; }
+  h1 { font-size: 20px; margin-bottom: 16px; }
   table { border-collapse: collapse; width: 100%; }
-  th, td { border: 1px solid #999; padding: 4px 8px; font-size: 12px;
+  th, td { border: 1px solid #999; padding: 5px 8px; font-size: 14px;
     text-align: left; white-space: pre-line; vertical-align: top; }
   th, td.dag { background: #e3e3e3; font-weight: bold; }
   @media print { body { margin: 0; } }
@@ -63,7 +63,7 @@ String bouwOverzichtHtml({
         (d) => d.gebruikerId == gebruiker.uid && d.datum == dagIso,
       );
       final inhoud = vanDezeGebruiker.isEmpty
-          ? '-'
+          ? ''
           : vanDezeGebruiker
                 .map(
                   (d) => _escape(d.naarTekst(scheidingVoorOmschrijving: '\n')),

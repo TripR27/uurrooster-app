@@ -1,9 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../models/dienst.dart';
 import '../models/gebruiker.dart';
+import '../services/dienst_service.dart';
 import '../services/gebruiker_service.dart';
 import '../theme.dart';
+import '../util/datum_util.dart';
 import 'beheer_overzicht_screen.dart';
 import 'pdf_upload_screen.dart';
 import 'shiften_screen.dart';
@@ -119,10 +122,147 @@ class _StartMenu extends StatelessWidget {
                   },
                 ),
               ],
+              const SizedBox(height: 28),
+              Text(
+                'Volgende shift',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              _VolgendeShiftKaart(profiel: profiel),
             ],
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Vult de lege ruimte onder de menukaarten met iets nuttigs i.p.v. gewoon
+/// wit/leeg: een vooruitblik op de eerstvolgende (vandaag of later) shift
+/// van de ingelogde gebruiker, live bijgewerkt via dezelfde stream als
+/// ShiftenScreen.
+class _VolgendeShiftKaart extends StatelessWidget {
+  const _VolgendeShiftKaart({required this.profiel});
+
+  final Gebruiker profiel;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<Dienst>>(
+      stream: DienstService.eigenDiensten(profiel.uid),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const _KaartFrame(
+            icoon: Icons.hourglass_empty,
+            kleur: AppKleuren.bosgroen,
+            titel: 'Even geduld...',
+            inhoud: '',
+          );
+        }
+
+        final vandaag = naarIsoDatum(DateTime.now());
+        final volgende = (snapshot.data ?? [])
+            .where((d) => d.datum.compareTo(vandaag) >= 0)
+            .toList();
+
+        if (volgende.isEmpty) {
+          return const _KaartFrame(
+            icoon: Icons.beach_access,
+            kleur: AppKleuren.terracotta,
+            titel: 'Niks gepland',
+            inhoud: 'Geen aankomende shiften - geniet van je vrije tijd!',
+          );
+        }
+
+        final eerst = volgende.first;
+        return _KaartFrame(
+          icoon: Icons.event_available,
+          kleur: AppKleuren.bosgroen,
+          titel: _naarRelatieveDag(eerst.datum),
+          inhoud: eerst.naarTekst(),
+        );
+      },
+    );
+  }
+
+  /// "Vandaag"/"Morgen" i.p.v. een kale datum wanneer relevant - dat leest
+  /// sneller dan zelf de datum van vandaag moeten aftrekken.
+  String _naarRelatieveDag(String iso) {
+    final vandaag = DateTime.now();
+    final dag = vanIsoDatum(iso);
+    final verschilInDagen = DateTime(
+      dag.year,
+      dag.month,
+      dag.day,
+    ).difference(DateTime(vandaag.year, vandaag.month, vandaag.day)).inDays;
+    switch (verschilInDagen) {
+      case 0:
+        return 'Vandaag';
+      case 1:
+        return 'Morgen';
+      default:
+        return naarWeergaveDatum(iso);
+    }
+  }
+}
+
+/// Zelfde kaart-uiterlijk als [_MenuKaart] (wit, afgeronde hoeken, gekleurd
+/// icoon-vakje) maar dan niet-tikbaar, puur om info te tonen.
+class _KaartFrame extends StatelessWidget {
+  const _KaartFrame({
+    required this.icoon,
+    required this.kleur,
+    required this.titel,
+    required this.inhoud,
+  });
+
+  final IconData icoon;
+  final Color kleur;
+  final String titel;
+  final String inhoud;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      elevation: 1,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: kleur.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icoon, color: kleur, size: 28),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    titel,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (inhoud.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(inhoud, style: Theme.of(context).textTheme.bodySmall),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
