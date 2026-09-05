@@ -1,1 +1,14 @@
 .env
+
+# Flutter/Dart
+.dart_tool/
+.flutter-plugin-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+*.iml
+.idea/
+android/.gradle/
+android/local.properties
+android/**/gradle-wrapper.jar
