@@ -36,3 +36,9 @@ flutter build apk --release --dart-define-from-file=.env.android
 De APK staat nadien in `build/app/outputs/flutter-apk/app-release.apk` -
 rechtstreeks te installeren op een Android-toestel (na "onbekende bronnen"
 toe te staan), geen Play Store nodig.
+
+De release-build is ondertekend met een echte keystore
+(`android/upload-keystore.jks` + `android/key.properties`, allebei
+gitignored - zie PROJECT_SPEC.md sectie 13 voor waar/hoe die staan).
+Ontbreken die bestanden (bv. een nieuwe checkout), dan valt de build
+automatisch terug op de tijdelijke debug-signing.
