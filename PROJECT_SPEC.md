@@ -230,6 +230,12 @@ PDF-bestanden in `uurroosters/`).
   `naamInRooster` (letterlijke naam zoals in de PDF) manueel toevoegen aan
   dat account se `gebruikers`-document in Firestore (zie sectie 5 en
   ACCOUNTS_AANMAKEN.md) - dat gebeurt niet automatisch.
+- `claudetest@test.com` staat ondertussen ingesteld op `roosterFormaat: B`
+  + `naamInRooster: Amy` (zodat ik daarmee Formaat B kan blijven testen);
+  Ryan's eigen account staat op `roosterFormaat: A` +
+  `naamInRooster: Wyters, Ryan`. Amy's echte 25 shiften (juni-augustus
+  2026) staan intussen ook echt in Firestore (`diensten`-collectie),
+  geverifieerd via de "Al opgeslagen"-lijst op het uploadscherm.
 - Android-app is nog niet geregistreerd in Firebase (enkel web-config
   aanwezig); dat moet nog gebeuren vlak voor de APK-build (fase 11).
 
@@ -258,6 +264,13 @@ PDF-bestanden in `uurroosters/`).
   opgezocht/gewijzigd kan worden (zie sectie 1 en 5) - dit is een
   expliciete, blijvende eis: PDF-import is nooit de enige manier waarop
   een dienst mag ontstaan of veranderen, de UI moet dit altijd toelaten.
+- `Dienst.omschrijving` staat bij een PDF-import nooit leeg: gewone
+  shiften krijgen `'Werk'`, een nachtshift (Formaat B, code "N") krijgt
+  `'Nacht'`. `Dienst.datum` blijft intern ISO ("2026-07-04") voor opslag/
+  sortering, maar UI-schermen tonen dat aan de gebruiker altijd als
+  "DD-MM-JJJJ" (zie `PdfUploadScreen._naarWeergaveDatum`) - en gebruik
+  nergens het woord "Firestore" in tekst die mama/Amy te zien krijgen,
+  dat zegt hen niks (gewoon "opslaan").
 
 ### Stijl / voorkeuren van Ryan
 - Nederlandstalige comments, vrij informeel (geen droge board-room-taal).

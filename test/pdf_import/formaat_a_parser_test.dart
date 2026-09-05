@@ -30,6 +30,7 @@ void main() {
     ]);
     expect(diensten[0].startTijd, '08:30');
     expect(diensten[0].eindTijd, '14:30');
+    expect(diensten[0].omschrijving, 'Werk');
     expect(diensten[4].startTijd, '10:00');
     expect(diensten[4].eindTijd, '16:30');
   });

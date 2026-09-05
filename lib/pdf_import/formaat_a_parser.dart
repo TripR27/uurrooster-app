@@ -85,7 +85,8 @@ class FormaatAParser implements RoosterParser {
         final kolommen = _naarDagKolommen(headerLijn, periodeStart);
 
         final rijLijnen = _vindRijLijnen(lines, headerLijn);
-        if (rijLijnen == null) continue; // deze persoon staat niet op deze pagina
+        // deze persoon staat niet op deze pagina
+        if (rijLijnen == null) continue;
 
         diensten.addAll(
           _leesDienstenUitRij(
@@ -181,10 +182,13 @@ class FormaatAParser implements RoosterParser {
   List<TextLine>? _vindRijLijnen(List<TextLine> lines, TextLine headerLijn) {
     final genormaliseerdeNaam = _normaliseer(naamInRooster);
 
-    final naamLijnen = lines
-        .where((l) => l.bounds.left < _naamKolomBreedte && l.text.contains(','))
-        .toList()
-      ..sort((a, b) => a.bounds.top.compareTo(b.bounds.top));
+    final naamLijnen =
+        lines
+            .where(
+              (l) => l.bounds.left < _naamKolomBreedte && l.text.contains(','),
+            )
+            .toList()
+          ..sort((a, b) => a.bounds.top.compareTo(b.bounds.top));
 
     final naamIndex = naamLijnen.indexWhere(
       (line) => _normaliseer(line.text) == genormaliseerdeNaam,
@@ -228,7 +232,8 @@ class FormaatAParser implements RoosterParser {
 
     final diensten = <Dienst>[];
     for (final entry in perKolom.entries) {
-      final cellen = entry.value..sort((a, b) => a.bounds.top.compareTo(b.bounds.top));
+      final cellen = entry.value
+        ..sort((a, b) => a.bounds.top.compareTo(b.bounds.top));
 
       // Een werkdag heeft altijd: [code, begintijd, eindtijd, ...]. Alles
       // anders (leeg, "FDrec" + "up", een code zonder tijden) is een dag
@@ -247,6 +252,9 @@ class FormaatAParser implements RoosterParser {
           datum: naarIsoDatum(entry.key.datum),
           startTijd: begin,
           eindTijd: eind,
+          // Formaat A kent geen nachtshift-onderscheid zoals Formaat B - hier
+          // is elke gevonden shift gewoon een werkdienst.
+          omschrijving: 'Werk',
           bron: DienstBron.pdfImport,
           aangemaaktOp: DateTime.now(),
         ),

@@ -8,7 +8,7 @@ import '../services/dienst_service.dart';
 /// Scherm om het eigen PDF-rooster te uploaden: kiest het juiste
 /// RoosterParser-formaat automatisch op basis van het profiel (zie
 /// Gebruiker.maakParser()), toont een voorbeeld van wat eruit gehaald
-/// wordt, en slaat dat pas op in Firestore na bevestiging.
+/// wordt, en slaat dat pas op na bevestiging.
 class PdfUploadScreen extends StatefulWidget {
   const PdfUploadScreen({super.key, required this.profiel});
 
@@ -69,7 +69,7 @@ class _PdfUploadScreenState extends State<PdfUploadScreen> {
       await DienstService.slaPdfImportOp(voorbeeld);
       setState(() => _opgeslagen = true);
     } catch (e) {
-      setState(() => _fout = 'Kon niet opslaan in Firestore: $e');
+      setState(() => _fout = 'Kon niet opslaan: $e');
     } finally {
       if (mounted) setState(() => _bezig = false);
     }
@@ -88,8 +88,7 @@ class _PdfUploadScreenState extends State<PdfUploadScreen> {
           children: [
             if (parser == null)
               const Text(
-                'Voor dit account is nog geen PDF-formaat ingesteld. Vraag '
-                'de beheerder om dat te doen (zie ACCOUNTS_AANMAKEN.md).',
+                'Voor dit account is nog geen PDF-formaat ingesteld. Vraag Ryjeaun mar!',
               )
             else
               FilledButton.icon(
@@ -98,7 +97,10 @@ class _PdfUploadScreenState extends State<PdfUploadScreen> {
                 label: const Text('Kies PDF-bestand'),
               ),
             const SizedBox(height: 16),
-            if (_bezig) const Center(child: CircularProgressIndicator()),
+            // Enkel tonen tijdens het inlezen van de PDF: zodra er een
+            // voorbeeld staat, toont de opslaan-knop zelf een laadcirkel.
+            if (_bezig && _voorbeeld == null)
+              const Center(child: CircularProgressIndicator()),
             if (_fout != null)
               Text(
                 _fout!,
@@ -113,12 +115,45 @@ class _PdfUploadScreenState extends State<PdfUploadScreen> {
               const SizedBox(height: 16),
               FilledButton(
                 onPressed: _bezig || _opgeslagen ? null : _opslaan,
-                child: Text(_opgeslagen ? 'Opgeslagen ✓' : 'Opslaan in Firestore'),
+                child: _bezig
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(_opgeslagen ? 'Opgeslagen' : 'Opslaan'),
               ),
+            ] else ...[
+              const SizedBox(height: 8),
+              const Text('Al opgeslagen:'),
+              Expanded(child: _alOpgeslagenLijst()),
             ],
           ],
         ),
       ),
+    );
+  }
+
+  /// Toont wat er voor dit account al opgeslagen staat - vooral handig om
+  /// meteen te zien of een upload effectief goed wegschrijft.
+  Widget _alOpgeslagenLijst() {
+    return StreamBuilder<List<Dienst>>(
+      stream: DienstService.eigenDiensten(widget.profiel.uid),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Text(
+            'Kon niet laden: ${snapshot.error}',
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          );
+        }
+        return _dienstenLijst(snapshot.data ?? []);
+      },
     );
   }
 
@@ -133,7 +168,7 @@ class _PdfUploadScreenState extends State<PdfUploadScreen> {
         return ListTile(
           dense: true,
           leading: const Icon(Icons.calendar_today),
-          title: Text(d.datum),
+          title: Text(_naarWeergaveDatum(d.datum)),
           subtitle: Text(
             d.omschrijving.isEmpty
                 ? '${d.startTijd} - ${d.eindTijd}'
@@ -142,5 +177,13 @@ class _PdfUploadScreenState extends State<PdfUploadScreen> {
         );
       },
     );
+  }
+
+  /// Zet het opgeslagen ISO-formaat ("2026-07-04") om naar "04-07-2026"
+  /// voor op het scherm - de ISO-tekst zelf blijft intern gebruikt voor
+  /// opslag/sortering (zie models/dienst.dart).
+  String _naarWeergaveDatum(String isoDatum) {
+    final delen = isoDatum.split('-');
+    return '${delen[2]}-${delen[1]}-${delen[0]}';
   }
 }

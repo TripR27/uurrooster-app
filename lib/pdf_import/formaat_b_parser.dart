@@ -11,8 +11,18 @@ import 'rooster_parser.dart';
 final _uurPatroon = RegExp(r'^\d{1,2}(,\d+)?$');
 
 const _maanden = [
-  'jan', 'feb', 'mrt', 'apr', 'mei', 'jun',
-  'jul', 'aug', 'sep', 'okt', 'nov', 'dec',
+  'jan',
+  'feb',
+  'mrt',
+  'apr',
+  'mei',
+  'jun',
+  'jul',
+  'aug',
+  'sep',
+  'okt',
+  'nov',
+  'dec',
 ];
 
 /// Een "vreemde" annotatie zoals "21juli" (dag+maand aan elkaar) of een
@@ -102,9 +112,9 @@ class FormaatBParser implements RoosterParser {
   _Kolom? _vindKolom(List<TextWord> woorden) {
     // De header staat helemaal bovenaan: neem de rij namen met de
     // kleinste top-waarde op deze pagina.
-    final bovensteTop = woorden.map((w) => w.bounds.top).reduce(
-      (a, b) => a < b ? a : b,
-    );
+    final bovensteTop = woorden
+        .map((w) => w.bounds.top)
+        .reduce((a, b) => a < b ? a : b);
     final namen =
         woorden
             .where(
@@ -129,7 +139,8 @@ class FormaatBParser implements RoosterParser {
     return _Kolom(links: links, rechts: rechts);
   }
 
-  double _middenVan(TextWord woord) => (woord.bounds.left + woord.bounds.right) / 2;
+  double _middenVan(TextWord woord) =>
+      (woord.bounds.left + woord.bounds.right) / 2;
 
   /// Groepeert alle woorden in de datumkolom per rij en herkent welke
   /// rijen een echte datum zijn (dag-afkorting + dagnummer + maand-afkorting,
@@ -146,16 +157,21 @@ class FormaatBParser implements RoosterParser {
 
     final rijen = <_DatumRij>[];
     for (final entry in perTop.entries) {
-      final tekst = (entry.value..sort((a, b) => a.bounds.left.compareTo(b.bounds.left)))
-          .map((w) => w.text)
-          .toList();
+      final tekst =
+          (entry.value..sort((a, b) => a.bounds.left.compareTo(b.bounds.left)))
+              .map((w) => w.text)
+              .toList();
       if (tekst.length != 3) continue;
       final maandNummer = _maandNaarNummer(tekst[2]);
       final dagnummer = int.tryParse(tekst[1]);
       if (maandNummer == null || dagnummer == null) continue;
 
       rijen.add(
-        _DatumRij(top: entry.key, dagnummer: dagnummer, maandNummer: maandNummer),
+        _DatumRij(
+          top: entry.key,
+          dagnummer: dagnummer,
+          maandNummer: maandNummer,
+        ),
       );
     }
     rijen.sort((a, b) => a.top.compareTo(b.top));
@@ -177,16 +193,16 @@ class FormaatBParser implements RoosterParser {
   }) {
     final tokens =
         (woorden
-              .where(
-                (w) =>
-                    (w.bounds.top - top).abs() < 1 &&
-                    w.bounds.left >= kolom.links &&
-                    w.bounds.left < kolom.rechts,
-              )
-              .toList()
-            ..sort((a, b) => a.bounds.left.compareTo(b.bounds.left)))
-        .map((w) => w.text)
-        .toList();
+                .where(
+                  (w) =>
+                      (w.bounds.top - top).abs() < 1 &&
+                      w.bounds.left >= kolom.links &&
+                      w.bounds.left < kolom.rechts,
+                )
+                .toList()
+              ..sort((a, b) => a.bounds.left.compareTo(b.bounds.left)))
+            .map((w) => w.text)
+            .toList();
 
     // Eenmalige opmerkingen die een datum vermelden (bv. "RF 21juli 6
     // 6,0") lijken oppervlakkig op een dienst maar zijn dat niet - een
@@ -218,7 +234,7 @@ class FormaatBParser implements RoosterParser {
       datum: naarIsoDatum(datum),
       startTijd: _naarUurString(beginWaarde),
       eindTijd: _naarUurString(eindWaarde),
-      omschrijving: isNacht ? 'Nacht' : '',
+      omschrijving: isNacht ? 'Nacht' : 'Werk',
       bron: DienstBron.pdfImport,
       aangemaaktOp: DateTime.now(),
     );
@@ -240,7 +256,11 @@ class _Kolom {
 }
 
 class _DatumRij {
-  _DatumRij({required this.top, required this.dagnummer, required this.maandNummer});
+  _DatumRij({
+    required this.top,
+    required this.dagnummer,
+    required this.maandNummer,
+  });
 
   final double top;
   final int dagnummer;

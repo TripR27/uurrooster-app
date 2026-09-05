@@ -47,7 +47,7 @@ void main() {
     final gewoneDienst = diensten.firstWhere((d) => d.datum == '2026-06-29');
     expect(gewoneDienst.startTijd, '07:00');
     expect(gewoneDienst.eindTijd, '17:00');
-    expect(gewoneDienst.omschrijving, '');
+    expect(gewoneDienst.omschrijving, 'Werk');
 
     // "20 N 9" op zondag 12 juli -> nacht van 20u tot 9u, zelfde dag.
     final nachtDienst = diensten.firstWhere((d) => d.datum == '2026-07-12');
