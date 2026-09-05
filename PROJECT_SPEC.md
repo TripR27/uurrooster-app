@@ -523,6 +523,55 @@ latere update-APK met een andere signing-key zou dan niet zomaar over
 deze installatie heen kunnen. Een eigen release-keystore opzetten is een
 bewuste keuze voor later, niet zomaar gedaan.
 
+Meteen daarna een reeks UX-correcties op basis van Ryans eigen test op
+zijn Samsung-toestel:
+- **Toetsenbord-proof schermen**: `DienstBewerkenScreen`,
+  `DienstToevoegenScreen` en `LoginScreen` (bij smal scherm) staan nu in
+  een `SafeArea` + `SingleChildScrollView`, zodat je naar een veld kan
+  scrollen i.p.v. dat het toetsenbord het gewoon overlapt. Op
+  `LoginScreen` verbergt de kop-banner zich bovendien zodra het
+  toetsenbord open staat (`MediaQuery.viewInsets.bottom > 0`), anders
+  moet je op een klein scherm steeds voorbij die vaste ~140px scrollen.
+- **Gebaren-navigatiebalk (Samsung e.d.)**: alle schermen die nog geen
+  `SafeArea` hadden (`ShiftenScreen`, `PdfUploadScreen`,
+  `BeheerOverzichtScreen`) hebben die nu, zodat de onderste knop/lijst
+  niet meer onder de systeembalk verdwijnt.
+- **PDF-import-UX**: `PdfUploadScreen._opslaan()` gaat na een geslaagde
+  opslag meteen terug naar `HomeScreen` (`Navigator.pop(aantal)`) i.p.v.
+  daar te blijven staan met een "ga terug naar het startscherm"-tekst;
+  `HomeScreen` vangt dat pop-resultaat op en toont een `SnackBar`
+  ("X shiften opgeslagen.") - leest een pak vlotter door.
+- **`BeheerOverzichtScreen` op mobiel herontworpen**: de brede `DataTable`
+  (1 kolom per persoon, horizontaal te scrollen) oogde "vaag"/onduidelijk
+  op een telefoonscherm. Vervangen door een lijst van dag-kaarten (1 kaart
+  per dag met effectief iets erop, lege dagen worden overgeslagen), 1
+  regel per gezinslid per kaart ("Naam · tijd (omschrijving)") - geen
+  horizontale scroll meer nodig, leest een pak duidelijker. De
+  print-/PDF-export (`overzicht_html.dart`/`overzicht_pdf.dart`) bleef
+  bewust wél een letterlijke tabel: dat wordt op papier/in een PDF-viewer
+  bekeken, niet op een smal telefoonscherm, dus daar is een tabel wél de
+  juiste vorm.
+- **Printen op Android werkte niet** (de stub gooide een
+  `UnsupportedError`) - opgelost door op Android i.p.v. de
+  browser-printdialoog (die daar niet bestaat) een PDF te genereren (het
+  teruggehaalde `genereerOverzichtPdf`, nu in `lib/print/overzicht_pdf.dart`
+  i.p.v. het verwijderde `lib/pdf_export/`) en die te delen via Android's
+  systeem-deelscherm (`share_plus` + `path_provider` voor een tijdelijk
+  bestand) - daar staat op de meeste toestellen gewoon "Printen" tussen de
+  opties, en anders kan de gebruiker de PDF openen in een willekeurige
+  PDF-viewer-app en die zijn eigen printknop gebruiken. De
+  `printen.dart`-abstractie kreeg daarvoor een nieuwe gedeelde functie
+  `printOverzicht(...)` (voorheen `printHtml(String)`) zodat elk platform
+  zelf beslist welk formaat (HTML voor web, PDF voor Android) het bouwt.
+- **App-icoon**: Ryans hondje (`assets/icon/app_icon.png`, door hem
+  aangeleverd) is nu het Android-app-icoon, gegenereerd met het package
+  `flutter_launcher_icons` (`dart run flutter_launcher_icons`,
+  configuratie onderaan `pubspec.yaml`) - genereert automatisch alle
+  mipmap-densiteiten in `android/app/src/main/res/`.
+
+Nieuwe APK gebouwd met al deze correcties + het nieuwe icoon (57,1 MB) en
+aan Ryan bezorgd.
+
 ### Nog te doen (kort overzicht, zie sectie 10 voor volledig bouwplan)
 
 Styling-polish (lopend). Webversie hosten op Firebase Hosting: **niet

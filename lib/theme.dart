@@ -21,17 +21,18 @@ class AppTheme {
   AppTheme._();
 
   static ThemeData get light {
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: AppKleuren.bosgroen,
-      brightness: Brightness.light,
-      primary: AppKleuren.bosgroen,
-      secondary: AppKleuren.terracotta,
-      surface: Colors.white,
-    ).copyWith(
-      // Achtergrond van de app zelf (Scaffold) i.p.v. de standaard
-      // Material-grijstint.
-      surfaceContainerLowest: AppKleuren.creme,
-    );
+    final colorScheme =
+        ColorScheme.fromSeed(
+          seedColor: AppKleuren.bosgroen,
+          brightness: Brightness.light,
+          primary: AppKleuren.bosgroen,
+          secondary: AppKleuren.terracotta,
+          surface: Colors.white,
+        ).copyWith(
+          // Achtergrond van de app zelf (Scaffold) i.p.v. de standaard
+          // Material-grijstint.
+          surfaceContainerLowest: AppKleuren.creme,
+        );
 
     // Twee lettertypes: Fraunces (een sierlijk serif-lettertype) voor
     // titels/koppen, Work Sans (neutraal schreefloos) voor de rest — dat
@@ -64,11 +65,15 @@ class AppTheme {
         fillColor: Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppKleuren.bosgroen.withValues(alpha: 0.25)),
+          borderSide: BorderSide(
+            color: AppKleuren.bosgroen.withValues(alpha: 0.25),
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppKleuren.bosgroen.withValues(alpha: 0.25)),
+          borderSide: BorderSide(
+            color: AppKleuren.bosgroen.withValues(alpha: 0.25),
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),

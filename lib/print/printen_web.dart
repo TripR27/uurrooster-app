@@ -2,11 +2,26 @@ import 'dart:js_interop';
 
 import 'package:web/web.dart' as web;
 
-/// Print [htmlContent] rechtstreeks af via de systeem-printdialoog van de
-/// browser: laadt de HTML in een onzichtbare iframe en roept daarop
+import '../models/dienst.dart';
+import '../models/gebruiker.dart';
+import 'overzicht_html.dart';
+
+/// Print het gezamenlijke overzicht rechtstreeks af via de
+/// systeem-printdialoog van de browser: laadt de HTML (zie
+/// `overzicht_html.dart`) in een onzichtbare iframe en roept daarop
 /// `window.print()` aan - de standaardtruc om iets anders dan de huidige
 /// pagina te printen zonder ernaartoe te moeten navigeren.
-void printHtml(String htmlContent) {
+Future<void> printOverzicht({
+  required DateTime maandStart,
+  required List<Gebruiker> gebruikers,
+  required List<Dienst> diensten,
+}) async {
+  final htmlContent = bouwOverzichtHtml(
+    maandStart: maandStart,
+    gebruikers: gebruikers,
+    diensten: diensten,
+  );
+
   final iframe = web.HTMLIFrameElement()
     ..style.position = 'fixed'
     ..style.width = '0'

@@ -130,10 +130,16 @@ class _LoginScreenState extends State<LoginScreen> {
               );
             }
 
+            // Zodra het toetsenbord open staat de kop-banner verbergen:
+            // anders moet je op een klein telefoonscherm steeds voorbij die
+            // vaste ~140px scrollen om te zien wat je aan het intikken bent.
+            final toetsenbordOpen =
+                MediaQuery.of(context).viewInsets.bottom > 0;
+
             return SingleChildScrollView(
               child: Column(
                 children: [
-                  const _BrandingBanner(),
+                  if (!toetsenbordOpen) const _BrandingBanner(),
                   Padding(
                     padding: const EdgeInsets.all(24),
                     child: _inlogFormulier(context),

@@ -82,12 +82,24 @@ class _StartMenu extends StatelessWidget {
                 titel: 'PDF uploaden',
                 omschrijving: 'Je werkrooster inlezen uit een PDF-bestand',
                 kleur: AppKleuren.terracotta,
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => PdfUploadScreen(profiel: profiel),
-                    ),
-                  );
+                onTap: () async {
+                  // PdfUploadScreen gaat na een geslaagde opslag meteen
+                  // terug naar hier (Navigator.pop met het aantal
+                  // opgeslagen shiften) i.p.v. zelf een "opgeslagen"-tekst
+                  // te tonen - beter leesbaar, en hier meteen bevestigen.
+                  final aantalOpgeslagen = await Navigator.of(context)
+                      .push<int>(
+                        MaterialPageRoute(
+                          builder: (_) => PdfUploadScreen(profiel: profiel),
+                        ),
+                      );
+                  if (aantalOpgeslagen != null && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('$aantalOpgeslagen shiften opgeslagen.'),
+                      ),
+                    );
+                  }
                 },
               ),
               const SizedBox(height: 16),

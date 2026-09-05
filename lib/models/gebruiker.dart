@@ -52,10 +52,8 @@ class Gebruiker {
 
   /// `null` zolang [roosterFormaat]/[naamInRooster] niet allebei ingesteld
   /// zijn - dit account kan dan nog geen PDF importeren.
-  RoosterParser? maakParser() => maakRoosterParser(
-    formaat: roosterFormaat,
-    naamInRooster: naamInRooster,
-  );
+  RoosterParser? maakParser() =>
+      maakRoosterParser(formaat: roosterFormaat, naamInRooster: naamInRooster);
 
   factory Gebruiker.vanDocument(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;

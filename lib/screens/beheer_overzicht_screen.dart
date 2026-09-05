@@ -3,7 +3,6 @@ import 'package:intl/intl.dart';
 
 import '../models/dienst.dart';
 import '../models/gebruiker.dart';
-import '../print/overzicht_html.dart';
 import '../print/printen.dart';
 import '../services/dienst_service.dart';
 import '../services/gebruiker_service.dart';
@@ -59,20 +58,18 @@ class _BeheerOverzichtScreenState extends State<BeheerOverzichtScreen> {
     });
   }
 
-  /// Bouwt de HTML van de huidig geladen maand (zie
-  /// `lib/print/overzicht_html.dart`) en stuurt die rechtstreeks naar de
-  /// systeem-printdialoog (`lib/print/printen.dart`) - geen tussenstap via
-  /// opslaan/downloaden.
+  /// Print/deelt het overzicht van de huidig geladen maand - op web
+  /// rechtstreeks naar de systeem-printdialoog, op Android via een
+  /// gegenereerde PDF + het deel-scherm (zie `lib/print/printen.dart`).
   Future<void> _printen() async {
     setState(() => _bezigMetPrinten = true);
     try {
       final overzicht = await _overzicht;
-      final html = bouwOverzichtHtml(
+      await printOverzicht(
         maandStart: _maandStart,
         gebruikers: overzicht.gebruikers,
         diensten: overzicht.diensten,
       );
-      printHtml(html);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -103,140 +100,158 @@ class _BeheerOverzichtScreenState extends State<BeheerOverzichtScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Container(
-            color: AppKleuren.bosgroenDonker,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.chevron_left, color: Colors.white),
-                  tooltip: 'Vorige maand',
-                  onPressed: () => _wisselMaand(-1),
-                ),
-                Text(
-                  DateFormat.yMMMM('nl_BE').format(_maandStart),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleMedium?.copyWith(color: Colors.white),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.chevron_right, color: Colors.white),
-                  tooltip: 'Volgende maand',
-                  onPressed: () => _wisselMaand(1),
-                ),
-              ],
+      // SafeArea: zonder dit overlapt de gebaren-navigatiebalk op sommige
+      // Android-toestellen de onderkant van de lijst.
+      body: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              color: AppKleuren.bosgroenDonker,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left, color: Colors.white),
+                    tooltip: 'Vorige maand',
+                    onPressed: () => _wisselMaand(-1),
+                  ),
+                  Text(
+                    DateFormat.yMMMM('nl_BE').format(_maandStart),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleMedium?.copyWith(color: Colors.white),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right, color: Colors.white),
+                    tooltip: 'Volgende maand',
+                    onPressed: () => _wisselMaand(1),
+                  ),
+                ],
+              ),
             ),
-          ),
-          Expanded(
-            child: FutureBuilder<_Overzicht>(
-              future: _overzicht,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Text(
-                        'Kon het overzicht niet laden: ${snapshot.error}',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
+            Expanded(
+              child: FutureBuilder<_Overzicht>(
+                future: _overzicht,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(
+                          'Kon het overzicht niet laden: ${snapshot.error}',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
                         ),
                       ),
-                    ),
+                    );
+                  }
+
+                  final overzicht = snapshot.data!;
+                  if (overzicht.gebruikers.isEmpty) {
+                    return const Center(child: Text('Nog geen gezinsleden.'));
+                  }
+
+                  final kaarten = _dagKaarten(overzicht);
+                  if (kaarten.isEmpty) {
+                    return const Center(
+                      child: Text('Niks gepland deze maand.'),
+                    );
+                  }
+
+                  return ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: kaarten.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
+                    itemBuilder: (context, i) => kaarten[i],
                   );
-                }
-
-                final overzicht = snapshot.data!;
-                if (overzicht.gebruikers.isEmpty) {
-                  return const Center(child: Text('Nog geen gezinsleden.'));
-                }
-
-                return SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: DataTable(
-                      headingRowColor: WidgetStateProperty.all(
-                        AppKleuren.bosgroen.withValues(alpha: 0.1),
-                      ),
-                      columns: [
-                        const DataColumn(label: Text('Dag')),
-                        for (final gebruiker in overzicht.gebruikers)
-                          DataColumn(label: Text(gebruiker.naam)),
-                      ],
-                      rows: [
-                        for (var dagNr = 1; dagNr <= _maandEinde.day; dagNr++)
-                          _dagRij(
-                            dag: DateTime(
-                              _maandStart.year,
-                              _maandStart.month,
-                              dagNr,
-                            ),
-                            gebruikers: overzicht.gebruikers,
-                            diensten: overzicht.diensten,
-                          ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  DataRow _dagRij({
-    required DateTime dag,
-    required List<Gebruiker> gebruikers,
-    required List<Dienst> diensten,
-  }) {
-    final dagIso = naarIsoDatum(dag);
-    return DataRow(
-      cells: [
-        DataCell(Text(naarDagLabel(dag))),
-        for (final gebruiker in gebruikers)
-          DataCell(
-            _CelInhoud(
-              diensten: diensten
-                  .where(
-                    (d) => d.gebruikerId == gebruiker.uid && d.datum == dagIso,
-                  )
-                  .toList(),
-            ),
-          ),
-      ],
-    );
+  /// Bouwt 1 kaart per dag die effectief iets bevat (lege dagen worden
+  /// overgeslagen i.p.v. als lege rij getoond - een tabel met 1 kolom per
+  /// persoon paste niet netjes op een telefoonscherm, dit leest een pak
+  /// duidelijker op mobiel).
+  List<Widget> _dagKaarten(_Overzicht overzicht) {
+    final kaarten = <Widget>[];
+    for (var dagNr = 1; dagNr <= _maandEinde.day; dagNr++) {
+      final dag = DateTime(_maandStart.year, _maandStart.month, dagNr);
+      final dagIso = naarIsoDatum(dag);
+      final regels = <(String naam, Dienst dienst)>[
+        for (final gebruiker in overzicht.gebruikers)
+          for (final dienst in overzicht.diensten.where(
+            (d) => d.gebruikerId == gebruiker.uid && d.datum == dagIso,
+          ))
+            (gebruiker.naam, dienst),
+      ];
+      if (regels.isEmpty) continue;
+      kaarten.add(_DagKaart(dag: dag, regels: regels));
+    }
+    return kaarten;
   }
 }
 
-class _CelInhoud extends StatelessWidget {
-  const _CelInhoud({required this.diensten});
+/// Eén dag uit het gezamenlijke overzicht: dag-label + 1 regel per
+/// gezinslid met iets die dag ("Naam · tijd (omschrijving)").
+class _DagKaart extends StatelessWidget {
+  const _DagKaart({required this.dag, required this.regels});
 
-  final List<Dienst> diensten;
+  final DateTime dag;
+  final List<(String naam, Dienst dienst)> regels;
 
   @override
   Widget build(BuildContext context) {
-    if (diensten.isEmpty) {
-      return const Text('-', style: TextStyle(color: Colors.black38));
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (final dienst in diensten)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 2),
-            child: Text(dienst.naarTekst(scheidingVoorOmschrijving: '\n')),
-          ),
-      ],
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      elevation: 1,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              naarDagLabel(dag),
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: AppKleuren.bosgroenDonker,
+              ),
+            ),
+            const SizedBox(height: 8),
+            for (final (naam, dienst) in regels)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.only(top: 6),
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: AppKleuren.terracotta,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text('$naam · ${dienst.naarTekst()}')),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

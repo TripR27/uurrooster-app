@@ -74,109 +74,115 @@ class _ShiftenScreenState extends State<ShiftenScreen> {
         icon: const Icon(Icons.add),
         label: const Text('Toevoegen'),
       ),
-      body: StreamBuilder<List<Dienst>>(
-        stream: DienstService.eigenDiensten(widget.profiel.uid),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text(
-                  'Kon shiften niet laden: ${snapshot.error}',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+      // SafeArea: zonder dit overlapt de gebaren-navigatiebalk op sommige
+      // Android-toestellen de onderkant van de lijst.
+      body: SafeArea(
+        child: StreamBuilder<List<Dienst>>(
+          stream: DienstService.eigenDiensten(widget.profiel.uid),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Text(
+                    'Kon shiften niet laden: ${snapshot.error}',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
                 ),
-              ),
-            );
-          }
+              );
+            }
 
-          final perDag = _groepeerPerDag(snapshot.data ?? []);
-          final vanGeselecteerdeDag = _opDag(perDag, _geselecteerdeDag);
+            final perDag = _groepeerPerDag(snapshot.data ?? []);
+            final vanGeselecteerdeDag = _opDag(perDag, _geselecteerdeDag);
 
-          return Column(
-            children: [
-              TableCalendar<Dienst>(
-                locale: 'nl_BE',
-                firstDay: DateTime(_gefocusteDag.year - 1),
-                lastDay: DateTime(_gefocusteDag.year + 2),
-                focusedDay: _gefocusteDag,
-                selectedDayPredicate: (dag) =>
-                    DateUtils.isSameDay(dag, _geselecteerdeDag),
-                eventLoader: (dag) => _opDag(perDag, dag),
-                onDaySelected: (geselecteerd, gefocust) {
-                  setState(() {
-                    _geselecteerdeDag = DateTime(
-                      geselecteerd.year,
-                      geselecteerd.month,
-                      geselecteerd.day,
-                    );
+            return Column(
+              children: [
+                TableCalendar<Dienst>(
+                  locale: 'nl_BE',
+                  firstDay: DateTime(_gefocusteDag.year - 1),
+                  lastDay: DateTime(_gefocusteDag.year + 2),
+                  focusedDay: _gefocusteDag,
+                  selectedDayPredicate: (dag) =>
+                      DateUtils.isSameDay(dag, _geselecteerdeDag),
+                  eventLoader: (dag) => _opDag(perDag, dag),
+                  onDaySelected: (geselecteerd, gefocust) {
+                    setState(() {
+                      _geselecteerdeDag = DateTime(
+                        geselecteerd.year,
+                        geselecteerd.month,
+                        geselecteerd.day,
+                      );
+                      _gefocusteDag = gefocust;
+                    });
+                  },
+                  onPageChanged: (gefocust) {
                     _gefocusteDag = gefocust;
-                  });
-                },
-                onPageChanged: (gefocust) {
-                  _gefocusteDag = gefocust;
-                },
-                headerStyle: const HeaderStyle(
-                  formatButtonVisible: false,
-                  titleCentered: true,
+                  },
+                  headerStyle: const HeaderStyle(
+                    formatButtonVisible: false,
+                    titleCentered: true,
+                  ),
+                  calendarStyle: CalendarStyle(
+                    todayDecoration: BoxDecoration(
+                      color: AppKleuren.bosgroen.withValues(alpha: 0.35),
+                      shape: BoxShape.circle,
+                    ),
+                    selectedDecoration: const BoxDecoration(
+                      color: AppKleuren.bosgroen,
+                      shape: BoxShape.circle,
+                    ),
+                    markerDecoration: const BoxDecoration(
+                      color: AppKleuren.terracotta,
+                      shape: BoxShape.circle,
+                    ),
+                    weekendTextStyle: const TextStyle(color: AppKleuren.inkt),
+                    outsideDaysVisible: false,
+                  ),
                 ),
-                calendarStyle: CalendarStyle(
-                  todayDecoration: BoxDecoration(
-                    color: AppKleuren.bosgroen.withValues(alpha: 0.35),
-                    shape: BoxShape.circle,
-                  ),
-                  selectedDecoration: const BoxDecoration(
-                    color: AppKleuren.bosgroen,
-                    shape: BoxShape.circle,
-                  ),
-                  markerDecoration: const BoxDecoration(
-                    color: AppKleuren.terracotta,
-                    shape: BoxShape.circle,
-                  ),
-                  weekendTextStyle: const TextStyle(color: AppKleuren.inkt),
-                  outsideDaysVisible: false,
-                ),
-              ),
-              const Divider(height: 1),
-              Expanded(
-                child: vanGeselecteerdeDag.isEmpty
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Text(
-                            'Niets op ${naarWeergaveDatum(naarIsoDatum(_geselecteerdeDag))}. '
-                            'Tik op "Toevoegen" om er iets op te zetten.',
-                            textAlign: TextAlign.center,
+                const Divider(height: 1),
+                Expanded(
+                  child: vanGeselecteerdeDag.isEmpty
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Text(
+                              'Niets op ${naarWeergaveDatum(naarIsoDatum(_geselecteerdeDag))}. '
+                              'Tik op "Toevoegen" om er iets op te zetten.',
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        )
+                      : ListView.separated(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          itemCount: vanGeselecteerdeDag.length,
+                          separatorBuilder: (_, _) => const SizedBox(height: 4),
+                          itemBuilder: (context, i) => DienstTile(
+                            dienst: vanGeselecteerdeDag[i],
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => DienstBewerkenScreen(
+                                    dienst: vanGeselecteerdeDag[i],
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         ),
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        itemCount: vanGeselecteerdeDag.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 4),
-                        itemBuilder: (context, i) => DienstTile(
-                          dienst: vanGeselecteerdeDag[i],
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => DienstBewerkenScreen(
-                                  dienst: vanGeselecteerdeDag[i],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-              ),
-            ],
-          );
-        },
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }

@@ -149,61 +149,68 @@ class _DienstBewerkenScreenState extends State<DienstBewerkenScreen> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Datum'),
-              subtitle: Text(naarWeergaveDatum(widget.dienst.datum)),
-            ),
-            const Divider(),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Van'),
-              subtitle: Text(_naarTijdString(_startTijd)),
-              trailing: IconButton(
-                icon: const Icon(Icons.access_time),
-                onPressed: _bezig ? null : () => _kiesTijd(isStart: true),
+      // SafeArea + SingleChildScrollView: zonder dit schuift het toetsenbord
+      // (bv. bij het intikken van de omschrijving) de onderste velden en de
+      // opslaan-knop gewoon uit beeld i.p.v. dat je ernaartoe kan scrollen,
+      // en op sommige Android-toestellen overlapt de gebaren-navigatiebalk
+      // anders de onderkant van het scherm.
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Datum'),
+                subtitle: Text(naarWeergaveDatum(widget.dienst.datum)),
               ),
-            ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Tot'),
-              subtitle: Text(_naarTijdString(_eindTijd)),
-              trailing: IconButton(
-                icon: const Icon(Icons.access_time),
-                onPressed: _bezig ? null : () => _kiesTijd(isStart: false),
+              const Divider(),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Van'),
+                subtitle: Text(_naarTijdString(_startTijd)),
+                trailing: IconButton(
+                  icon: const Icon(Icons.access_time),
+                  onPressed: _bezig ? null : () => _kiesTijd(isStart: true),
+                ),
               ),
-            ),
-            const Divider(),
-            TextField(
-              controller: _omschrijvingController,
-              decoration: const InputDecoration(labelText: 'Omschrijving'),
-            ),
-            const SizedBox(height: 24),
-            if (_fout != null)
-              Text(
-                _fout!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Tot'),
+                subtitle: Text(_naarTijdString(_eindTijd)),
+                trailing: IconButton(
+                  icon: const Icon(Icons.access_time),
+                  onPressed: _bezig ? null : () => _kiesTijd(isStart: false),
+                ),
               ),
-            const SizedBox(height: 8),
-            FilledButton(
-              onPressed: _bezig ? null : _opslaan,
-              child: _bezig
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Text('Opslaan'),
-            ),
-          ],
+              const Divider(),
+              TextField(
+                controller: _omschrijvingController,
+                decoration: const InputDecoration(labelText: 'Omschrijving'),
+              ),
+              const SizedBox(height: 24),
+              if (_fout != null)
+                Text(
+                  _fout!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              const SizedBox(height: 8),
+              FilledButton(
+                onPressed: _bezig ? null : _opslaan,
+                child: _bezig
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Opslaan'),
+              ),
+            ],
+          ),
         ),
       ),
     );

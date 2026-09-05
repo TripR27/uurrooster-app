@@ -25,7 +25,6 @@ class _PdfUploadScreenState extends State<PdfUploadScreen> {
   bool _bezig = false;
   String? _fout;
   List<Dienst>? _voorbeeld;
-  bool _opgeslagen = false;
 
   Future<void> _kiesEnLeesPdf() async {
     final bestand = await FilePicker.pickFile(
@@ -43,7 +42,6 @@ class _PdfUploadScreenState extends State<PdfUploadScreen> {
       _bezig = true;
       _fout = null;
       _voorbeeld = null;
-      _opgeslagen = false;
     });
 
     try {
@@ -60,6 +58,10 @@ class _PdfUploadScreenState extends State<PdfUploadScreen> {
     }
   }
 
+  /// Slaat op en gaat meteen terug naar het startscherm (i.p.v. hier een
+  /// "opgeslagen"-tekst te tonen) - dat leest beter door. Geeft het aantal
+  /// opgeslagen shiften mee als pop-resultaat, zodat het startscherm daar
+  /// een bevestiging over kan tonen (zie HomeScreen._MenuKaart-onTap).
   Future<void> _opslaan() async {
     final voorbeeld = _voorbeeld;
     if (voorbeeld == null) return;
@@ -70,7 +72,7 @@ class _PdfUploadScreenState extends State<PdfUploadScreen> {
     });
     try {
       await DienstService.slaPdfImportOp(voorbeeld);
-      setState(() => _opgeslagen = true);
+      if (mounted) Navigator.of(context).pop(voorbeeld.length);
     } catch (e) {
       setState(() => _fout = 'Kon niet opslaan: $e');
     } finally {
@@ -84,70 +86,68 @@ class _PdfUploadScreenState extends State<PdfUploadScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('PDF-rooster uploaden')),
-      body: Column(
-        children: [
-          Container(
-            color: AppKleuren.bosgroenDonker,
-            padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.picture_as_pdf_outlined,
-                  color: AppKleuren.terracotta,
-                  size: 32,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Lees je werkrooster in en zet het meteen op je '
-                    'shiften',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge?.copyWith(color: Colors.white),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+      // SafeArea: zonder dit overlapt de gebaren-navigatiebalk op sommige
+      // Android-toestellen de opslaan-knop onderaan.
+      body: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              color: AppKleuren.bosgroenDonker,
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+              child: Row(
                 children: [
-                  if (parser == null)
-                    const Text(
-                      'Voor dit account is nog geen PDF-formaat ingesteld. Vraag Ryjeaun mar!',
-                    )
-                  else
-                    FilledButton.icon(
-                      onPressed: _bezig ? null : _kiesEnLeesPdf,
-                      icon: const Icon(Icons.upload_file),
-                      label: const Text('Kies PDF-bestand'),
+                  const Icon(
+                    Icons.picture_as_pdf_outlined,
+                    color: AppKleuren.terracotta,
+                    size: 32,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Lees je werkrooster in en zet het meteen op je '
+                      'shiften',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyLarge?.copyWith(color: Colors.white),
                     ),
-                  const SizedBox(height: 16),
-                  // Enkel tonen tijdens het inlezen van de PDF: zodra er
-                  // een voorbeeld staat, toont de opslaan-knop zelf een
-                  // laadcirkel.
-                  if (_bezig && _voorbeeld == null)
-                    const Center(child: CircularProgressIndicator()),
-                  if (_fout != null)
-                    Text(
-                      _fout!,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (parser == null)
+                      const Text(
+                        'Voor dit account is nog geen PDF-formaat ingesteld. Vraag Ryjeaun mar!',
+                      )
+                    else
+                      FilledButton.icon(
+                        onPressed: _bezig ? null : _kiesEnLeesPdf,
+                        icon: const Icon(Icons.upload_file),
+                        label: const Text('Kies PDF-bestand'),
                       ),
-                    ),
-                  if (_voorbeeld != null) ...[
-                    Text(
-                      _opgeslagen
-                          ? '${_voorbeeld!.length} shiften opgeslagen. Ga '
-                                'terug naar het startscherm om ze te '
-                                'bekijken of te corrigeren.'
-                          : '${_voorbeeld!.length} shiften gevonden:',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    if (!_opgeslagen)
+                    const SizedBox(height: 16),
+                    // Enkel tonen tijdens het inlezen van de PDF: zodra er
+                    // een voorbeeld staat, toont de opslaan-knop zelf een
+                    // laadcirkel.
+                    if (_bezig && _voorbeeld == null)
+                      const Center(child: CircularProgressIndicator()),
+                    if (_fout != null)
+                      Text(
+                        _fout!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    if (_voorbeeld != null) ...[
+                      Text(
+                        '${_voorbeeld!.length} shiften gevonden:',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                       Expanded(
                         child: ListView.builder(
                           itemCount: _voorbeeld!.length,
@@ -155,26 +155,27 @@ class _PdfUploadScreenState extends State<PdfUploadScreen> {
                               DienstTile(dienst: _voorbeeld![i]),
                         ),
                       ),
-                    const SizedBox(height: 16),
-                    FilledButton(
-                      onPressed: _bezig || _opgeslagen ? null : _opslaan,
-                      child: _bezig
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : Text(_opgeslagen ? 'Opgeslagen' : 'Opslaan'),
-                    ),
+                      const SizedBox(height: 16),
+                      FilledButton(
+                        onPressed: _bezig ? null : _opslaan,
+                        child: _bezig
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text('Opslaan'),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
