@@ -1,6 +1,14 @@
 .env
 .env.android
 
+# Release-signing voor de APK (zie android/app/build.gradle.kts) - een
+# echte keystore/wachtwoord hoort nooit in git. Verlies je dit bestand,
+# dan kan je geen update meer over een al geïnstalleerde APK heen zetten
+# (zie PROJECT_SPEC.md) - bewaar dus zelf een kopie op een veilige plek.
+android/key.properties
+android/*.jks
+android/**/*.jks
+
 # Test-exports/downloads die je hier zelf in zet om na te kijken (bv. een
 # geëxporteerd rooster) - de echte PDF-roosters (uurrooster-ryan.pdf,
 # uurrooster-zus.pdf) staan al vóór deze regel getrackt en blijven dat: dit
@@ -18,6 +26,7 @@ uurroosters/*
 build/
 *.iml
 .idea/
+.vscode/
 android/.gradle/
 android/local.properties
 android/**/gradle-wrapper.jar

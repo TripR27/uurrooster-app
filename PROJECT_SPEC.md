@@ -572,8 +572,65 @@ zijn Samsung-toestel:
 Nieuwe APK gebouwd met al deze correcties + het nieuwe icoon (57,1 MB) en
 aan Ryan bezorgd.
 
+Daarna alsnog een echte release-keystore opgezet (Ryan vroeg dit enkel
+als het weinig moeite zou kosten - `keytool` (bij elke JDK, hier
+`C:\Program Files\Java\jdk-21\bin\keytool.exe`) genereert zoiets in 1
+commando, dus wel gedaan): `android/upload-keystore.jks` +
+`android/key.properties` (beide bewust **niet** in git, staat al zo in
+de kant-en-klare `android/.gitignore` van het Flutter-template - zelf
+nog eens expliciet herhaald in de root-`.gitignore` met uitleg).
+`android/app/build.gradle.kts` laadt die properties en gebruikt ze voor
+de `release`-signingConfig, met een fallback naar debug-signing als
+`key.properties` ontbreekt (bv. een nieuwe checkout zonder de keystore)
+zodat de build daar niet op stukloopt. Geverifieerd met `apksigner
+verify --print-certs` dat de gebouwde APK écht met deze nieuwe key
+ondertekend is (SHA-256 vingerafdruk kwam overeen).
+
+**Belangrijk om te weten:** dit betekent dat de eerder geïnstalleerde
+(debug-ondertekende) APK bij Ryan eerst verwijderd moet worden vóór hij
+deze nieuwste, "echt" ondertekende versie kan installeren - Android
+weigert anders de installatie (verschillende handtekening). Vanaf nu
+blijft de handtekening wel stabiel bij elke volgende build, dus dit is
+een eenmalig ongemak. **De keystore/wachtwoord bestaat maar op deze ene
+machine** - als dat verloren gaat, herhaalt dit eenmalige ongemak zich
+bij een volgende build. Ryan zelf een kopie ergens veilig laten bewaren
+is aan hem, ik kan dat niet namens hem doen.
+
+Vervolgens gevraagd door Ryan: Firebase App Distribution opzetten voor
+makkelijker verspreiden dan handmatig mailen. `firebase-tools` (npm)
+lokaal geïnstalleerd. Nog te voltooien - vereist acties van Ryan zelf in
+de Firebase/Google Cloud console, zie de actiepunten-sectie hieronder.
+
+### Actie gevraagd van Ryan: Firebase App Distribution opzetten
+
+Om dit verder af te werken zonder dat ik moet inloggen op zijn
+Google-account (dat mag ik niet), heeft Ryan de keuze uit 2 opties:
+
+**Optie A - simpelst, geen CLI-login nodig:**
+1. Firebase Console -> project `uurrooster-app` -> linkermenu "Release &
+   Monitor" -> "App Distribution" -> inschakelen.
+2. Tab "Testers & Groups" -> maak een groep (bv. "gezin") -> voeg
+   e-mailadressen toe (zijn eigen adres, later Amy/mama).
+3. Bij elke nieuwe APK: Ryan sleept die zelf naar "Distribute new
+   release" in de console (ik geef 'm het bestand zoals nu), kiest de
+   groep "gezin" -> testers krijgen automatisch een e-mail met
+   downloadlink + installeren 1x een klein "Firebase App
+   Tester"-app'je.
+
+**Optie B - iets meer opzet, maar dan kan ik nadien zelf uploaden (geen
+handmatig slepen meer nodig per versie):**
+1. Zelfde stap 1 en 2 als hierboven.
+2. Google Cloud Console (console.cloud.google.com, zelfde project) ->
+   "IAM en beheer" -> "Serviceaccounts" -> nieuw serviceaccount ->
+   rol "Firebase App Distribution Admin" toekennen -> "Keys" -> "Add
+   key" -> JSON -> downloaden.
+3. Dat JSON-bestand aan mij bezorgen (lokaal bewaren, nooit committen).
+   Daarna kan ik `firebase appdistribution:distribute` gebruiken om
+   elke nieuwe build rechtstreeks te versturen, zonder tussenkomst van
+   Ryan per keer.
+
 ### Nog te doen (kort overzicht, zie sectie 10 voor volledig bouwplan)
 
-Styling-polish (lopend). Webversie hosten op Firebase Hosting: **niet
-nodig** van Ryan (enkel de APK is gewenst), dus geschrapt uit het
-bouwplan.
+Styling-polish (lopend). Firebase App Distribution (zie actiepunt
+hierboven). Webversie hosten op Firebase Hosting: **niet nodig** van
+Ryan (enkel de APK is gewenst), dus geschrapt uit het bouwplan.
