@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'auth_gate.dart';
 import 'firebase_options.dart';
+import 'theme.dart';
 
 void main() async {
   // Nodig omdat Firebase.initializeApp() al Flutter-bindings gebruikt
@@ -19,10 +20,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Gezinsrooster',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.light,
+      debugShowCheckedModeBanner: false,
       // AuthGate beslist zelf of het inlogscherm of het startscherm getoond
       // wordt, op basis van de Firebase-inlogstatus (zie auth_gate.dart).
       home: const AuthGate(),

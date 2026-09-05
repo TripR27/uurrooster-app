@@ -29,7 +29,18 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
       body: Center(
-        child: Text('Ingelogd als ${gebruiker.email}'),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.check_circle,
+              color: Theme.of(context).colorScheme.primary,
+              size: 48,
+            ),
+            const SizedBox(height: 16),
+            Text('Ingelogd als ${gebruiker.email}'),
+          ],
+        ),
       ),
     );
   }
