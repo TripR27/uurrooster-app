@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 import 'auth_gate.dart';
 import 'firebase_options.dart';
@@ -10,6 +11,10 @@ void main() async {
   // vóórdat runApp() dat normaal gesproken zelf zou doen.
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // Laadt de Nederlandse maand-/dagnamen in voor de kalenderweergave
+  // (ShiftenScreen, via table_calendar) - zonder dit gooit intl een
+  // LocaleDataException zodra er een niet-Engelse locale gebruikt wordt.
+  await initializeDateFormatting('nl_BE');
   runApp(const MyApp());
 }
 

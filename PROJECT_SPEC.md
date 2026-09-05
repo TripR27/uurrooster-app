@@ -241,18 +241,36 @@ Amy live gewijzigd + teruggezet via de UI, en de lijst update meteen
 (StreamBuilder, geen refresh nodig).
 
 Stap 7 (handmatige invoer zonder PDF) is nu ook klaar: `ShiftenScreen`
-heeft een FloatingActionButton "Shift toevoegen" die naar het nieuwe
-scherm `lib/screens/dienst_toevoegen_screen.dart`
-(`DienstToevoegenScreen`) gaat - datum (default vandaag) + van/tot-tijd
-(default nu / nu+1u) + vrije omschrijving, altijd met `bron: handmatig`.
-Nieuw in `DienstService`: `aanmaken(Dienst)` gebruikt `.add()` (auto-
-gegenereerd document-id) i.p.v. een vast `{gebruikerId}_{datum}`-id, zodat
-er - in tegenstelling tot een PDF-import - wel meerdere shiften per dag
-kunnen bestaan (zie PROJECT_SPEC.md sectie 5). Geen wijziging aan
-`firestore.rules` nodig: de bestaande `create`-rule op `diensten` (enkel
-`gebruikerId == request.auth.uid`) staat toe ongeacht of het document-id
-vast of auto-gegenereerd is. Getest: een echte handmatige shift
-aangemaakt/bekeken/verwijderd via de UI op het testaccount.
+heeft een FloatingActionButton die naar het nieuwe scherm
+`lib/screens/dienst_toevoegen_screen.dart` (`DienstToevoegenScreen`) gaat -
+datum + van/tot-tijd (default vandaag/nu-nu+1u, of de aangetikte
+kalenderdag, zie hieronder) + vrije omschrijving, altijd met
+`bron: handmatig`. Nieuw in `DienstService`: `aanmaken(Dienst)` gebruikt
+`.add()` (auto-gegenereerd document-id) i.p.v. een vast
+`{gebruikerId}_{datum}`-id, zodat er - in tegenstelling tot een PDF-import
+- wel meerdere shiften per dag kunnen bestaan (zie PROJECT_SPEC.md sectie
+5). Geen wijziging aan `firestore.rules` nodig: de bestaande `create`-rule
+op `diensten` (enkel `gebruikerId == request.auth.uid`) staat toe ongeacht
+of het document-id vast of auto-gegenereerd is.
+
+Direct daarna gevraagd door Ryan: het "toevoegen" is niet altijd een
+werkshift (kan ook een privé-afspraak zijn), dus de knop/titel van dat
+scherm heet nu neutraal "Toevoegen" i.p.v. "Shift toevoegen" (enkel de
+zichtbare tekst; de klasse blijft `DienstToevoegenScreen`, zie eerdere
+afspraak over interne namen niet meemigreren). Daarnaast is de platte
+lijst op `ShiftenScreen` vervangen door een kalenderweergave
+(`table_calendar`-package, maand per maand met vorige/volgende-pijltjes):
+een terracotta bolletje op elke dag met iets erop, tik een dag aan om de
+shiften/afspraken van die dag eronder te zien. De "Toevoegen"-knop gebruikt
+de net aangetikte kalenderdag als startdatum voor het formulier (i.p.v.
+altijd vandaag) via het nieuwe `DienstToevoegenScreen.initieleDatum`
+-argument. Nederlandse maand-/dagnamen vereisen `initializeDateFormatting
+('nl_BE')` in `main()` vóór `runApp()` (via het `intl`-package, nu als
+directe dependency toegevoegd i.p.v. enkel transitief) - zonder die
+initialisatie gooit `table_calendar` een `LocaleDataException`. Getest: een
+echte handmatige shift aangemaakt/bekeken/verwijderd via de UI op het
+testaccount, en de kalender + dag-selectie + vooringevulde datum
+gecontroleerd tegen Amy's echte juli-shiften.
 
 ### Firebase-project
 

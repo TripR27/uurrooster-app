@@ -5,14 +5,22 @@ import '../models/gebruiker.dart';
 import '../services/dienst_service.dart';
 import '../util/datum_util.dart';
 
-/// Scherm om zelf een nieuwe shift toe te voegen zonder PDF - bv. een
-/// privé-afspraak op het gezamenlijke rooster (zie PROJECT_SPEC.md sectie 1
-/// en 7). Krijgt altijd `bron: handmatig` en dus een automatisch
-/// gegenereerd document-id (zie DienstService.aanmaken).
+/// Scherm om zelf iets toe te voegen zonder PDF - dat is niet altijd een
+/// werkshift, ook een privé-afspraak op het gezamenlijke rooster hoort hier
+/// (zie PROJECT_SPEC.md sectie 1 en 7). Krijgt altijd `bron: handmatig` en
+/// dus een automatisch gegenereerd document-id (zie DienstService.aanmaken).
 class DienstToevoegenScreen extends StatefulWidget {
-  const DienstToevoegenScreen({super.key, required this.profiel});
+  const DienstToevoegenScreen({
+    super.key,
+    required this.profiel,
+    this.initieleDatum,
+  });
 
   final Gebruiker profiel;
+
+  /// Datum waarmee het formulier opent - bv. de dag die net aangetikt werd
+  /// in de kalenderweergave. Standaard vandaag als er niks meegegeven wordt.
+  final DateTime? initieleDatum;
 
   @override
   State<DienstToevoegenScreen> createState() => _DienstToevoegenScreenState();
@@ -33,7 +41,7 @@ class _DienstToevoegenScreenState extends State<DienstToevoegenScreen> {
   void initState() {
     super.initState();
     final nu = TimeOfDay.now();
-    _datum = DateTime.now();
+    _datum = widget.initieleDatum ?? DateTime.now();
     _startTijd = nu;
     _eindTijd = nu.replacing(hour: (nu.hour + 1) % 24);
   }
@@ -101,7 +109,7 @@ class _DienstToevoegenScreenState extends State<DienstToevoegenScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Shift toevoegen')),
+      appBar: AppBar(title: const Text('Toevoegen')),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
