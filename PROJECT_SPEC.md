@@ -240,6 +240,20 @@ PDF-import (zie hieronder bij document-id). Getest: een echte dienst van
 Amy live gewijzigd + teruggezet via de UI, en de lijst update meteen
 (StreamBuilder, geen refresh nodig).
 
+Stap 7 (handmatige invoer zonder PDF) is nu ook klaar: `ShiftenScreen`
+heeft een FloatingActionButton "Shift toevoegen" die naar het nieuwe
+scherm `lib/screens/dienst_toevoegen_screen.dart`
+(`DienstToevoegenScreen`) gaat - datum (default vandaag) + van/tot-tijd
+(default nu / nu+1u) + vrije omschrijving, altijd met `bron: handmatig`.
+Nieuw in `DienstService`: `aanmaken(Dienst)` gebruikt `.add()` (auto-
+gegenereerd document-id) i.p.v. een vast `{gebruikerId}_{datum}`-id, zodat
+er - in tegenstelling tot een PDF-import - wel meerdere shiften per dag
+kunnen bestaan (zie PROJECT_SPEC.md sectie 5). Geen wijziging aan
+`firestore.rules` nodig: de bestaande `create`-rule op `diensten` (enkel
+`gebruikerId == request.auth.uid`) staat toe ongeacht of het document-id
+vast of auto-gegenereerd is. Getest: een echte handmatige shift
+aangemaakt/bekeken/verwijderd via de UI op het testaccount.
+
 ### Firebase-project
 
 - Project-id: `uurrooster-app`. Web-config staat in `.env` (niet
@@ -326,7 +340,6 @@ Amy live gewijzigd + teruggezet via de UI, en de lijst update meteen
 
 ### Nog te doen (kort overzicht, zie sectie 10 voor volledig bouwplan)
 
-Overzichtscherm (eigen diensten bekijken + corrigeren), handmatige invoer
-zonder PDF, beheerscherm met gezamenlijk overzicht, printen/PDF-export,
+Beheerscherm met gezamenlijk overzicht, printen/PDF-export,
 styling-polish, Android-registratie in Firebase + APK-build, webversie
 hosten op Firebase Hosting.

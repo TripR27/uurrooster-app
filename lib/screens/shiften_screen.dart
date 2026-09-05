@@ -6,6 +6,7 @@ import '../services/dienst_service.dart';
 import '../theme.dart';
 import '../widgets/dienst_tile.dart';
 import 'dienst_bewerken_screen.dart';
+import 'dienst_toevoegen_screen.dart';
 
 /// Scherm met de eigen shiften van de ingelogde gebruiker: een live lijst
 /// (`DienstService.eigenDiensten`) waarbij elke rij open te tikken is om te
@@ -24,6 +25,17 @@ class ShiftenScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Mijn shiften')),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => DienstToevoegenScreen(profiel: profiel),
+            ),
+          );
+        },
+        icon: const Icon(Icons.add),
+        label: const Text('Shift toevoegen'),
+      ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -76,8 +88,8 @@ class ShiftenScreen extends StatelessWidget {
                     child: Padding(
                       padding: EdgeInsets.all(24),
                       child: Text(
-                        'Nog geen shiften. Upload een PDF-rooster om te '
-                        'beginnen.',
+                        'Nog geen shiften. Upload een PDF-rooster of voeg '
+                        'er zelf één toe met de knop hieronder.',
                         textAlign: TextAlign.center,
                       ),
                     ),

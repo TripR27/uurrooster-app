@@ -22,6 +22,18 @@ class DienstService {
     await batch.commit();
   }
 
+  /// Voegt een nieuwe handmatige dienst toe (bv. een privé-afspraak, zie
+  /// PROJECT_SPEC.md sectie 1) met een automatisch gegenereerd document-id -
+  /// in tegenstelling tot een PDF-import kunnen er zo wel meerdere diensten
+  /// per dag per gebruiker bestaan (bv. een werkdienst + een afspraak).
+  static Future<void> aanmaken(Dienst dienst) async {
+    assert(
+      dienst.id == null,
+      'aanmaken() is enkel voor een nog niet opgeslagen dienst',
+    );
+    await _diensten.add(dienst.naarDocument());
+  }
+
   /// Werkt een bestaande dienst bij (bv. een verkeerd ingelezen uur
   /// corrigeren) - [dienst.id] moet dus al bestaan.
   static Future<void> bijwerken(Dienst dienst) async {
