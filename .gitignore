@@ -1,4 +1,5 @@
 .env
+.env.android
 
 # Test-exports/downloads die je hier zelf in zet om na te kijken (bv. een
 # geëxporteerd rooster) - de echte PDF-roosters (uurrooster-ryan.pdf,

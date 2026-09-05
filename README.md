@@ -20,3 +20,19 @@ flutter build web --dart-define-from-file=.env
 
 Zonder deze vlag start de app wel op, maar kan Firebase niet verbinden
 (lege apiKey/projectId/...).
+
+## Android (APK)
+
+Voor Android is er een apart env-bestand, `.env.android` (ook niet
+gecommit) - de Android-app heeft in Firebase namelijk zijn eigen
+`apiKey`/`appId`, los van de webapp (zie PROJECT_SPEC.md fase 12 voor hoe
+je die waarden ophaalt). Zelfde bestandsformaat als `.env`, enkel zonder
+`authDomain` (dat is web-only):
+
+```bash
+flutter build apk --release --dart-define-from-file=.env.android
+```
+
+De APK staat nadien in `build/app/outputs/flutter-apk/app-release.apk` -
+rechtstreeks te installeren op een Android-toestel (na "onbekende bronnen"
+toe te staan), geen Play Store nodig.

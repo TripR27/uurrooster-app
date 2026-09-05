@@ -491,7 +491,51 @@ voor is.
 - Nooit een account/wachtwoord voor Ryan aanmaken of zijn echte
   Google-wachtwoord gebruiken - enkel het expliciet gedeelde testaccount.
 
+Verder alvast voorbereid voor fase 11 (APK-build), code-kant: getest dat
+`flutter build apk` op deze machine werkt (Android-toolchain in orde,
+ondanks een `flutter doctor`-waarschuwing over ontbrekende cmdline-tools -
+Gradle loste dat vanzelf op door de nodige SDK-onderdelen zelf te
+installeren/licenties te accepteren). `firebase_options.dart` heeft nu
+een echte `android`-sectie (i.p.v. de `UnsupportedError`-placeholder),
+die - net als `web` - waarden uit dart-define leest; enkel dan uit een
+apart bestand `.env.android` (nieuw in `.gitignore`, zie README.md) zodat
+web en Android elk hun eigen Firebase-appconfig kunnen hebben zonder
+conflicterende dart-define-sleutels. App-label in
+`android/app/src/main/AndroidManifest.xml` aangepast naar "Mama's rooster
+app" (was de generieke Flutter-default "uurrooster_app") - dat is wat
+onder het icoontje op het toestel komt te staan.
+
+### Actie gevraagd van Ryan: Android-app registreren in Firebase
+
+Nodig om de APK (fase 11) echt te kunnen bouwen - dit kan enkel Ryan zelf
+doen, ik heb geen toegang tot zijn Firebase/Google-account:
+
+1. Ga naar de [Firebase Console](https://console.firebase.google.com/) ->
+   project `uurrooster-app` -> tandwiel (Project settings) -> tab
+   "General" -> helemaal onderaan "Your apps" -> "Add app" -> Android-
+   icoontje.
+2. Android package name: **`com.tripr27.uurrooster_app`** (staat al zo in
+   `android/app/build.gradle.kts`, niet aanpassen). App-nickname mag om
+   het even wat zijn, bv. "Mama's rooster app". SHA-1 mag je overslaan
+   (niet nodig, deze app gebruikt enkel e-mail/wachtwoord-login).
+3. Na "Register app" toont Firebase een `google-services.json` om te
+   downloaden - dat bestand hoeft niet gedownload/toegevoegd te worden
+   (dit project gebruikt die Gradle-plugin bewust niet, zie
+   `firebase_options.dart`). Klik het downloadscherm gewoon weg/verder.
+4. Open die nieuwe Android-app nadien in Project settings en zoek de 5
+   waarden op (staan ook gewoon in de eerder getoonde
+   `google-services.json`, als je die toch al gedownload hebt):
+   `apiKey`, `appId` (soms "Mobile SDK App ID" genoemd), `projectId`,
+   `messagingSenderId` (Project settings -> Cloud Messaging, of "Project
+   number" bovenaan General), `storageBucket`.
+5. Geef mij die 5 waarden door (of het gedownloade
+   `google-services.json`-bestand) - ik zet ze in een nieuw, niet-
+   gecommit `.env.android`-bestand (zelfde aanpak als het bestaande
+   `.env` voor de webversie, zie README.md) en bouw daarna de APK.
+
 ### Nog te doen (kort overzicht, zie sectie 10 voor volledig bouwplan)
 
-Styling-polish, Android-registratie in Firebase + APK-build, webversie
-hosten op Firebase Hosting.
+Styling-polish (lopend), APK-build zodra de Android-Firebase-waarden
+hierboven binnen zijn. Webversie hosten op Firebase Hosting: **niet
+nodig** van Ryan (enkel de APK is gewenst), dus geschrapt uit het
+bouwplan.
