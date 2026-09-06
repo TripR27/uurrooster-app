@@ -35,6 +35,8 @@ class Gebruiker {
     required this.rol,
     this.roosterFormaat,
     this.naamInRooster,
+    this.webuntisKlasId,
+    this.webuntisMinor,
   });
 
   final String uid;
@@ -44,11 +46,24 @@ class Gebruiker {
   /// Welk PDF-formaat + welke naam-in-de-PDF bij dit account hoort. Staat
   /// er niet automatisch bij (`null` bij een nieuw aangemaakt profiel) -
   /// de beheerder vult dit zelf handmatig aan via de Firestore-console
-  /// zodra dat gekend is (zie ACCOUNTS_AANMAKEN.md).
+  /// zodra dat gekend is (zie PROJECT_SPEC.md §8).
   final RoosterFormaat? roosterFormaat;
   final String? naamInRooster;
 
+  /// WebUntis-klas-id (bv. `3905` voor 3ITSOF1) en het vak van de minor die
+  /// dit account effectief volgt (bv. `MDI_IT_PROJIXREA` = Mixed Reality).
+  /// Handmatig ingesteld in de Firestore-console; enkel Ryans account heeft
+  /// dit. Zijn beide gezet, dan verschijnt de "Schoolrooster"-knop (F4).
+  final int? webuntisKlasId;
+  final String? webuntisMinor;
+
   bool get isBeheerder => rol == GebruikerRol.beheerder;
+
+  /// Kan dit account zijn schoolrooster ophalen? (F4)
+  bool get heeftSchoolrooster =>
+      webuntisKlasId != null &&
+      webuntisMinor != null &&
+      webuntisMinor!.isNotEmpty;
 
   /// `null` zolang [roosterFormaat]/[naamInRooster] niet allebei ingesteld
   /// zijn - dit account kan dan nog geen PDF importeren.
@@ -65,6 +80,9 @@ class Gebruiker {
         data['roosterFormaat'] as String?,
       ),
       naamInRooster: data['naamInRooster'] as String?,
+      // Firestore kan een getal als int of double teruggeven.
+      webuntisKlasId: (data['webuntisKlasId'] as num?)?.toInt(),
+      webuntisMinor: data['webuntisMinor'] as String?,
     );
   }
 }

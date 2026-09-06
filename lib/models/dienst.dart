@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Waar een dienst vandaan komt: automatisch uit een geüpload PDF-rooster,
-/// of met de hand ingevoerd (bv. voor privé-afspraken op het gezamenlijke
-/// rooster, zie PROJECT_SPEC.md §1).
-enum DienstBron { pdfImport, handmatig }
+/// Waar een dienst vandaan komt (zie PROJECT_SPEC.md §1, §4, F4):
+/// - [pdfImport]: automatisch uit een geüpload PDF-werkrooster,
+/// - [handmatig]: met de hand ingevoerd (bv. een privé-afspraak),
+/// - [schoolrooster]: automatisch opgehaald uit WebUntis (Ryans
+///   schooldagen - vroegste begin tot laatste einde).
+enum DienstBron { pdfImport, handmatig, schoolrooster }
 
 extension DienstBronWaarde on DienstBron {
   String get waarde {
@@ -12,11 +14,20 @@ extension DienstBronWaarde on DienstBron {
         return 'pdf-import';
       case DienstBron.handmatig:
         return 'handmatig';
+      case DienstBron.schoolrooster:
+        return 'schoolrooster';
     }
   }
 
   static DienstBron vanWaarde(String waarde) {
-    return waarde == 'pdf-import' ? DienstBron.pdfImport : DienstBron.handmatig;
+    switch (waarde) {
+      case 'pdf-import':
+        return DienstBron.pdfImport;
+      case 'schoolrooster':
+        return DienstBron.schoolrooster;
+      default:
+        return DienstBron.handmatig;
+    }
   }
 }
 

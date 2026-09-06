@@ -22,6 +22,42 @@ class DienstService {
     await batch.commit();
   }
 
+  /// Schrijft de uit WebUntis opgehaalde schooldagen weg voor één gebruiker
+  /// en één maand (F4). Elke dag krijgt document-id `{gebruikerId}_school_
+  /// {datum}` zodat opnieuw ophalen gewoon overschrijft. School-diensten van
+  /// diezelfde maand die er niet meer zijn (les afgelast, vakantie) worden
+  /// verwijderd.
+  static Future<void> slaSchoolroosterOp({
+    required String gebruikerId,
+    required List<Dienst> diensten,
+    required int jaar,
+    required int maand,
+  }) async {
+    final prefix = '${gebruikerId}_school_';
+    final maandStr =
+        '${jaar.toString().padLeft(4, '0')}-${maand.toString().padLeft(2, '0')}';
+
+    final bestaand = await _diensten
+        .where('gebruikerId', isEqualTo: gebruikerId)
+        .get();
+
+    final batch = FirebaseFirestore.instance.batch();
+    final nieuweIds = <String>{};
+    for (final dienst in diensten) {
+      final id = '$prefix${dienst.datum}';
+      nieuweIds.add(id);
+      batch.set(_diensten.doc(id), dienst.naarDocument());
+    }
+    for (final doc in bestaand.docs) {
+      if (doc.id.startsWith(prefix) &&
+          doc.id.substring(prefix.length).startsWith(maandStr) &&
+          !nieuweIds.contains(doc.id)) {
+        batch.delete(doc.reference);
+      }
+    }
+    await batch.commit();
+  }
+
   /// Voegt een nieuwe handmatige dienst toe (bv. een privé-afspraak, zie
   /// PROJECT_SPEC.md §1) met een automatisch gegenereerd document-id -
   /// in tegenstelling tot een PDF-import kunnen er zo wel meerdere diensten

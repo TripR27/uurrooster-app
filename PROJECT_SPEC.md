@@ -61,16 +61,20 @@ creditcard). Alles gebeurt client-side → 100% gratis, geen betaalgegevens.
   naam: string,                      // "Ryan", "Amy", "Mama"
   rol: "lid" | "beheerder",
   roosterFormaat: "A" | "B" | null,  // welke PDF-parser; niet automatisch ingevuld
-  naamInRooster: string | null       // letterlijke naam in de PDF; idem
+  naamInRooster: string | null,      // letterlijke naam in de PDF; idem
+  webuntisKlasId: number | null,     // WebUntis-klas-id (bv. 3905 = 3ITSOF1); F4
+  webuntisMinor: string | null       // vak van de eigen minor (bv. MDI_IT_PROJIXREA); F4
 }
 ```
 
 `roosterFormaat` + `naamInRooster` worden **handmatig** door de beheerder
 toegevoegd in de Firestore-console zodra bekend is welk PDF-formaat bij een
 account hoort. Zonder die twee velden kan een account geen PDF importeren,
-maar wel handmatig shiften toevoegen. Een nieuw profiel wordt automatisch
-aangemaakt bij de eerste login met enkel `naam` + `rol: "lid"`
-(`GebruikerService.haalOfMaakProfiel`).
+maar wel handmatig shiften toevoegen. `webuntisKlasId` + `webuntisMinor`
+zijn idem handmatig (enkel Ryans account); zijn ze allebei gezet, dan
+verschijnt de "Schoolrooster"-knop (F4, `Gebruiker.heeftSchoolrooster`).
+Een nieuw profiel wordt automatisch aangemaakt bij de eerste login met
+enkel `naam` + `rol: "lid"` (`GebruikerService.haalOfMaakProfiel`).
 
 ### Collectie `diensten`
 
@@ -83,8 +87,8 @@ aangemaakt bij de eerste login met enkel `naam` + `rol: "lid"`
   startTijd: string | null, // "09:00"; null als heleDag
   eindTijd: string | null,  // "17:00"; null = enkel een startuur bekend (F1) of heleDag
   heleDag: bool,            // duurt de hele dag, geen uren (F2)
-  omschrijving: string,     // "Werk", "Nacht", of vrije tekst; nooit leeg bij PDF-import
-  bron: "pdf-import" | "handmatig",
+  omschrijving: string,     // "Werk", "Nacht", "School", of vrije tekst; nooit leeg bij PDF-import
+  bron: "pdf-import" | "handmatig" | "schoolrooster",
   aangemaaktOp: timestamp
 }
 ```
@@ -243,7 +247,8 @@ committen). Daarna `firebase appdistribution:distribute` per build.
 # DEEL B — Nieuwe features: analyse & stappenplan
 
 Vier gevraagde uitbreidingen. Volgorde: **F1** ✅ → **F2** ✅ →
-**UX-opfrissing formulier** ✅ → **F3** ✅ → **F4** (de grote, nog te doen).
+**UX-opfrissing formulier** ✅ → **F3** ✅ → **F4** (bezig: F4.1 ✅,
+F4.2/F4.3 te doen).
 
 Elke feature: eerst de code-wijziging, dan `flutter analyze` + `flutter
 test` + visuele check via de browser-tool met het testaccount, dan commit +
@@ -456,20 +461,29 @@ De knop toont dan gewoon "geen lessen gevonden".
 - **Platformcheck:** op web (`kIsWeb`) de kaart verbergen of disabelen met
   uitleg "werkt enkel in de Android-app".
 
-### Stappenplan F4 (soepel via Claude)
+### Stappenplan F4
 
-| Stap | Wat Claude doet | Wat Ryan doet |
-| ---- | --------------- | ------------- |
-| F4.1 | `SchoolroosterService` + een klein testprogramma dat de publieke API leest en per dag het venster **print** (nog niks opslaan). Draait tegen een echte week. | 1 echte week nakijken; bevestigen dat de dag-vensters kloppen en of de uitsluitlijst volstaat. |
-| F4.2 | `DienstBron.schoolrooster` + `webuntisKlasId`/`webuntisMinor` in het datamodel; weergave (icoon/label "School"). | `webuntisKlasId: 3905` + `webuntisMinor: "MDI_IT_PROJIXREA"` toevoegen aan zijn `gebruikers`-document + aan `claude@test.com` (zodat Claude kan testen). |
-| F4.3 | `SchoolroosterScreen` (maandkiezer → voorbeeld → opslaan) + de kaart op `HomeScreen`. Opslaan overschrijft + ruimt lege dagen op. | — |
-| F4.4 | Testen met `claude@test.com` op een Android-emulator: maand ophalen, opslaan, in "Mijn shiften" + gezamenlijk overzicht controleren. | Op zijn eigen toestel eens draaien en feedback geven. |
-| F4.5 | Randgevallen: feestdagen/vakantie (lege maand), examenweken, meerdere blokken met gaten ertussen (blijft min→max), web-platformcheck. | — |
+| Stap | Status | Inhoud |
+| ---- | ------ | ------ |
+| **F4.1** | ✅ GEDAAN | Datamodel (`DienstBron.schoolrooster`, `Gebruiker.webuntisKlasId`/`webuntisMinor`/`heeftSchoolrooster`) + `lib/school/schoolrooster_service.dart` (`SchoolroosterService.haalMaand` = HTTP-orkestratie; `leesWeekrooster(...)` = pure filter; `schooldagNaarDienst(...)`) + `DienstService.slaSchoolroosterOp` (upsert + opruimen). Getest tegen een **echte** WebUntis-week (`test/school/fixtures/week_2025-11-03.json`) - de dag-vensters kloppen exact. |
+| **F4.2** | te doen | `SchoolroosterScreen` (maandkiezer → "Ophalen" → voorbeeldlijst → "Opslaan", look zoals `PdfUploadScreen`) + kaart op `HomeScreen` (enkel als `profiel.heeftSchoolrooster`, op web verborgen/uitgelegd) + "School"-weergave in `DienstTile` (schooltas-icoon). |
+| **F4.3** | te doen | Randgevallen + oppoetsen: lege maand ("nog geen rooster gepubliceerd"), foutmelding-UX, herhaald ophalen. |
 
-### Nog te bevestigen (F4)
+**Echte end-to-end-test** (WebUntis effectief ophalen) kan enkel op Android
+— dat doet Ryan één keer op zijn toestel na F4.2.
 
-- **Vakkenlijst:** volg je in 3ITSOF1 naast Mixed Reality nog andere
-  keuzevakken/minors, of is "alles behalve PROJMAKER/PROJROB/PROJSTUP"
-  juist? (bepalen we samen op een echte week in F4.1)
-- Moeten "School"-dagen ook in mama's **gezamenlijk overzicht** verschijnen,
-  of enkel in jouw eigen shiften? (standaard: overal, zoals elke dienst)
+### Beslist / bevestigd (F4)
+
+- **Vakkenlijst:** Ryan volgt in 3ITSOF1 géén andere keuzevakken naast
+  Mixed Reality. Filter = "alles behalve `MDI_IT_PROJ*` dat niet de eigen
+  minor is". De minor mag in het profiel staan als `MDI_IT_PROJIXREA` óf
+  gewoon `PROJIXREA` (de service normaliseert dat).
+- **"School"-dagen** verschijnen overal zoals elke dienst — ook in mama's
+  gezamenlijk overzicht en (voor de beheerder) bewerkbaar.
+- **Geannuleerde lessen:** de filter negeert ze (`cellState` bevat
+  "CANCEL" / `code` "cancelled" / `is.cancelled`). In het najaarssemester
+  2025 stonden er geen annuleringen in het klasrooster, dus dit is enkel
+  defensief gecodeerd, niet tegen echte geannuleerde data getest.
+- **Caveat:** de API geeft momenteel enkel het najaarssemester 2025 terug;
+  het rooster 2026-2027 is nog niet gepubliceerd door AP. Voor zo'n maand
+  toont de knop gewoon "geen lessen gevonden".
