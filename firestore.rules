@@ -48,14 +48,16 @@ service cloud.firestore {
       allow read: if isSignedIn() &&
         (resource.data.gebruikerId == request.auth.uid || isBeheerder());
 
-      // Enkel voor jezelf diensten aanmaken/wijzigen/verwijderen - ook de
-      // beheerder past niet de diensten van iemand anders aan (zie
-      // PROJECT_SPEC.md, sectie 2: beheerder mag enkel bekijken+printen).
+      // Voor jezelf mag je altijd diensten aanmaken/wijzigen/verwijderen.
+      // De beheerder mag dat daarnaast ook voor iedereen (F3, zie
+      // PROJECT_SPEC.md §2 en §5 - het gezamenlijke overzicht laat de
+      // beheerder shiften van anderen corrigeren/toevoegen/verwijderen).
       allow create: if isSignedIn() &&
-        request.resource.data.gebruikerId == request.auth.uid;
+        (request.resource.data.gebruikerId == request.auth.uid ||
+         isBeheerder());
 
       allow update, delete: if isSignedIn() &&
-        resource.data.gebruikerId == request.auth.uid;
+        (resource.data.gebruikerId == request.auth.uid || isBeheerder());
     }
   }
 }

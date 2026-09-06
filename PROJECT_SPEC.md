@@ -27,14 +27,10 @@ of te verwijderen.
 | Rol       | Wie              | Rechten (huidige situatie)                                                                 |
 | --------- | ---------------- | ----------------------------------------------------------------------------------------- |
 | Lid       | Amy, mama        | Inloggen, eigen PDF uploaden, eigen shiften bekijken/toevoegen/corrigeren/verwijderen     |
-| Beheerder | Ryan             | Alles wat een lid kan + gezamenlijk overzicht van iedereen bekijken + printen/exporteren  |
+| Beheerder | Ryan             | Alles wat een lid kan + gezamenlijk overzicht van iedereen bekijken, printen én shiften van iedereen toevoegen/corrigeren/verwijderen (F3) |
 
 Iedereen heeft een eigen account. Na inloggen weet de app automatisch wie
 je bent (via de Firebase Auth uid → Firestore-profiel).
-
-> **Let op:** feature 3 (deel B) breidt de beheerdersrechten uit zodat de
-> beheerder óók de shiften van anderen mag aanpassen vanuit het gezamenlijke
-> overzicht. Zolang dat niet gebouwd is geldt de tabel hierboven.
 
 ## 3. Techstack (zoals effectief gebruikt)
 
@@ -111,9 +107,10 @@ Model in code: `lib/models/dienst.dart` (`Dienst`, enum `DienstBron`).
 | Home | `lib/screens/home_screen.dart` | gekleurde kop (wie ben je + uitloggen) + menukaarten: "PDF uploaden", "Shiften bekijken", "Gezamenlijk overzicht" (enkel beheerder), + "Volgende shift"-kaartje |
 | PDF uploaden | `lib/screens/pdf_upload_screen.dart` | kiest automatisch de juiste parser via `profiel.maakParser()`, toont voorbeeld, slaat pas op na bevestiging, popt terug met aantal |
 | Mijn shiften | `lib/screens/shiften_screen.dart` | `table_calendar` maandweergave met bolletje op dagen met iets; tik een dag → lijst eronder; FAB "Toevoegen" |
-| Toevoegen | `lib/screens/dienst_toevoegen_screen.dart` | datum + van/tot + omschrijving, altijd `bron: handmatig`. Checkboxes "Alleen een startuur" (F1), "Meerdere dagen" + "Hele dag" (F2). |
-| Bewerken | `lib/screens/dienst_bewerken_screen.dart` | uren + omschrijving + "Alleen een startuur"/"Hele dag"/"Meerdere dagen" aanpassen, of verwijderen (met bevestiging). **Begindatum nooit aanpasbaar** (id-afspraak); einddatum van een meerdaagse periode wél. |
-| Gezamenlijk overzicht | `lib/screens/beheer_overzicht_screen.dart` | per maand (pijltjes), lijst dag-kaarten (1 regel per gezinslid), print-knop in de AppBar |
+| Toevoegen | `lib/screens/dienst_toevoegen_screen.dart` | embed van `DienstFormulier`; altijd `bron: handmatig`. Optioneel `voorGebruiker` (beheerder voegt toe voor iemand anders, F3). |
+| Bewerken | `lib/screens/dienst_bewerken_screen.dart` | embed van `DienstFormulier` (`datumVast`), + verwijderen met bevestiging. |
+| Formulier | `lib/widgets/dienst_formulier.dart` | gedeeld: "Met uren"/"Hele dag"-keuze, datum of datumbereik (range picker), Van/Tot-velden (× = enkel startuur), omschrijving. |
+| Gezamenlijk overzicht | `lib/screens/beheer_overzicht_screen.dart` | per maand (pijltjes), lijst dag-kaarten (1 regel per gezinslid), print-knop; tik een regel → bewerken, FAB → toevoegen voor een gezinslid (F3) |
 
 Gedeelde bouwstenen: `lib/widgets/dienst_tile.dart` (één dienst-rij),
 `lib/util/datum_util.dart` (ISO ↔ weergave-datum, dag-label),
@@ -245,8 +242,8 @@ committen). Daarna `firebase appdistribution:distribute` per build.
 
 # DEEL B — Nieuwe features: analyse & stappenplan
 
-Vier gevraagde uitbreidingen. Volgorde: **F1** ✅ → **F2** → **F3** →
-**F4** (de grote).
+Vier gevraagde uitbreidingen. Volgorde: **F1** ✅ → **F2** ✅ →
+**UX-opfrissing formulier** ✅ → **F3** ✅ → **F4** (de grote, nog te doen).
 
 Elke feature: eerst de code-wijziging, dan `flutter analyze` + `flutter
 test` + visuele check via de browser-tool met het testaccount, dan commit +
@@ -299,50 +296,56 @@ nodig. Test: `test/models/dienst_test.dart`.
 - **Tests:** `test/models/dienst_test.dart`,
   `test/util/datum_util_test.dart`.
 
-> **Mogelijke opruiming later:** `DienstToevoegenScreen` en
-> `DienstBewerkenScreen` delen nu een flink stuk (bijna identieke)
-> formulier-UI. Een gedeeld `_DienstFormulier`-widget zou dat kunnen
-> samenbrengen — bewust niet nu gedaan om de wijziging klein te houden.
+---
+
+## UX toevoegen/bewerken — gedeeld formulier ✅ GEDAAN
+
+`DienstToevoegenScreen` en `DienstBewerkenScreen` deelden bijna identieke
+formulier-UI. Die zit nu in één widget `lib/widgets/dienst_formulier.dart`
+(`DienstFormulier` + `DienstConcept`), die beide schermen embedden en
+uitlezen via een `GlobalKey<DienstFormulierState>().currentState!.lees()`.
+De schermen zelf houden enkel nog de opslaan-/verwijder-flow bij.
+
+Nieuwe, opgefriste UX:
+- **Segmented control** bovenaan: "Met uren" / "Hele dag" (vervangt de
+  losse "Hele dag"-checkbox).
+- **Eén datumveld** dat bij "Meerdere dagen" een `showDateRangePicker`
+  opent — je duidt begin- én einddag ná elkaar aan in dezelfde kalender.
+  De switch "Meerdere dagen" opent die kalender meteen. In Bewerken blijft
+  de begindatum vast (`datumVast`); daar kies je enkel de einddag.
+- **Uren** als twee tikbare velden naast elkaar ("Van" / "Tot"). Het
+  "Tot"-veld heeft een ×-knopje: wegklikken = "enkel een startuur" (F1);
+  het veld wordt dan een "+ Einduur"-knop om het terug toe te voegen. De
+  aparte "Alleen een startuur"-checkbox is weg.
+- Alles in nette, tikbare kaartvelden met de app-kleuren i.p.v. kale
+  `ListTile`-rijen.
 
 ---
 
-## F3 — Beheerder past shiften van iedereen aan in het gezamenlijke overzicht
+## F3 — Beheerder past shiften van iedereen aan ✅ GEDAAN
 
-**Wens:** in "Gezamenlijk overzicht" mag de beheerder dingen van iedereen
-aanpassen (niet enkel bekijken).
+**Wens:** in "Gezamenlijk overzicht" mag de beheerder shiften van iedereen
+aanpassen, niet enkel bekijken.
 
-### Aanpak
+**Wat gebouwd is:**
 
-Klein–middelgroot.
-
-- **`firestore.rules`** (`diensten`): `isBeheerder()` toevoegen aan
-  `create`, `update` én `delete`:
-  ```
-  allow create: if isSignedIn() &&
-    (request.resource.data.gebruikerId == request.auth.uid || isBeheerder());
-  allow update, delete: if isSignedIn() &&
-    (resource.data.gebruikerId == request.auth.uid || isBeheerder());
-  ```
-  → **Ryan publiceert de nieuwe rules in de console.**
+- **`firestore.rules`** (`diensten`): `create`, `update` en `delete` staan
+  nu ook `isBeheerder()` toe (naast "voor jezelf").
+  → **Ryan moet de nieuwe rules publiceren in de Firebase Console** (tab
+  Firestore Database → Rules → plak `firestore.rules` → Publish). Tot dan
+  faalt het bewerken van andermans shift met een permissie-fout.
 - **`beheer_overzicht_screen.dart`**:
-  - Elke regel in `_DagKaart` tikbaar maken → `DienstBewerkenScreen(dienst)`
-    openen. Na terugkeer `_overzicht` herladen (`setState`).
-  - Per dag-kaart (of via een FAB met dag- + persoonskeuze) een
-    **"+ toevoegen voor …"**: kies een gezinslid, open
-    `DienstToevoegenScreen`.
-- **`DienstToevoegenScreen`**: nu hardcodeert die `widget.profiel` als
-  eigenaar. Uitbreiden met een optionele `voorGebruiker` (uid + naam)
-  zodat de beheerder voor iemand anders kan aanmaken. `DienstService`
-  (`aanmaken`/`bijwerken`) blijft ongewijzigd — schrijft gewoon de
-  `gebruikerId` van de doelpersoon; de rules laten het toe.
-- **Spec bijwerken:** §2 (rollen) + de comment in `firestore.rules` die nu
-  zegt "beheerder past niks van anderen aan".
-
-### Aandachtspunt
-
-`DienstBewerkenScreen` werkt al met een willekeurige `Dienst` en toont geen
-eigenaarsnaam — voor de beheerder is het handig om ergens "van: Amy" te
-tonen zodat duidelijk is wiens shift je aanpast.
+  - Krijgt de ingelogde `profiel` mee (via `HomeScreen`).
+  - Elke regel op een dag-kaart is tikbaar → `DienstBewerkenScreen` (die al
+    met elke `Dienst` werkt, incl. verwijderen). Na terugkeer herlaadt het
+    overzicht.
+  - **FAB "Toevoegen"** → bottom sheet "Voor wie?" (lijst gezinsleden) →
+    `DienstToevoegenScreen` met `voorGebruiker`.
+- **`DienstToevoegenScreen`**: optionele `voorGebruiker` (naast `profiel`).
+  Is die gezet, dan wordt de dienst met díé `gebruikerId`/`gebruikerNaam`
+  aangemaakt en toont de titel "Toevoegen voor <naam>".
+- `DienstService` ongewijzigd — schrijft gewoon de `gebruikerId` van de
+  doelpersoon; de rules laten het toe.
 
 ---
 

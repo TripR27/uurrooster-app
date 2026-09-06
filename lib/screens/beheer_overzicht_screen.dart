@@ -8,13 +8,20 @@ import '../services/dienst_service.dart';
 import '../services/gebruiker_service.dart';
 import '../theme.dart';
 import '../util/datum_util.dart';
+import 'dienst_bewerken_screen.dart';
+import 'dienst_toevoegen_screen.dart';
 
 /// Gezamenlijk overzicht van alle gezinsleden, enkel voor de beheerder (zie
-/// PROJECT_SPEC.md §2 en §5) - een tabel met 1 kolom per persoon en 1
-/// rij per dag van de gekozen maand, met een knop om dat rechtstreeks af te
-/// drukken (sectie 9, zie `_printen` hieronder).
+/// PROJECT_SPEC.md §2 en §5) - een lijst dag-kaarten (1 regel per gezinslid)
+/// voor de gekozen maand, met een knop om dat rechtstreeks af te drukken
+/// (§7). De beheerder kan hier ook shiften van iedereen toevoegen,
+/// corrigeren of verwijderen (F3): tik een regel aan, of gebruik de
+/// "Toevoegen"-knop.
 class BeheerOverzichtScreen extends StatefulWidget {
-  const BeheerOverzichtScreen({super.key});
+  const BeheerOverzichtScreen({super.key, required this.profiel});
+
+  /// De ingelogde beheerder.
+  final Gebruiker profiel;
 
   @override
   State<BeheerOverzichtScreen> createState() => _BeheerOverzichtScreenState();
@@ -46,6 +53,15 @@ class _BeheerOverzichtScreenState extends State<BeheerOverzichtScreen> {
       totIso: naarIsoDatum(_maandEinde),
     );
     return _Overzicht(gebruikers: gebruikers, diensten: diensten);
+  }
+
+  void _herlaad() {
+    if (!mounted) return;
+    // Block-body: een arrow `() => _overzicht = _laadOverzicht()` zou de
+    // Future teruggeven en dan verwerpt setState() dat.
+    setState(() {
+      _overzicht = _laadOverzicht();
+    });
   }
 
   void _wisselMaand(int aantalMaanden) {
@@ -81,6 +97,51 @@ class _BeheerOverzichtScreenState extends State<BeheerOverzichtScreen> {
     }
   }
 
+  /// F3: tik op een bestaande shift (van wie dan ook) om ze te corrigeren
+  /// of te verwijderen.
+  Future<void> _bewerk(Dienst dienst) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => DienstBewerkenScreen(dienst: dienst)),
+    );
+    _herlaad();
+  }
+
+  /// F3: iets toevoegen voor een gezinslid naar keuze.
+  Future<void> _toevoegen(List<Gebruiker> gezinsleden) async {
+    final voor = await showModalBottomSheet<Gebruiker>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Text('Voor wie?'),
+            ),
+            for (final g in gezinsleden)
+              ListTile(
+                leading: const Icon(Icons.person_outline),
+                title: Text(g.naam),
+                onTap: () => Navigator.of(context).pop(g),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (voor == null || !mounted) return;
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => DienstToevoegenScreen(
+          profiel: widget.profiel,
+          voorGebruiker: voor,
+          initieleDatum: DateTime(_maandStart.year, _maandStart.month),
+        ),
+      ),
+    );
+    _herlaad();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -99,6 +160,18 @@ class _BeheerOverzichtScreenState extends State<BeheerOverzichtScreen> {
             onPressed: _bezigMetPrinten ? null : _printen,
           ),
         ],
+      ),
+      floatingActionButton: FutureBuilder<_Overzicht>(
+        future: _overzicht,
+        builder: (context, snapshot) {
+          final leden = snapshot.data?.gebruikers ?? const <Gebruiker>[];
+          if (leden.isEmpty) return const SizedBox.shrink();
+          return FloatingActionButton.extended(
+            onPressed: () => _toevoegen(leden),
+            icon: const Icon(Icons.add),
+            label: const Text('Toevoegen'),
+          );
+        },
       ),
       // SafeArea: zonder dit overlapt de gebaren-navigatiebalk op sommige
       // Android-toestellen de onderkant van de lijst.
@@ -165,7 +238,7 @@ class _BeheerOverzichtScreenState extends State<BeheerOverzichtScreen> {
                   }
 
                   return ListView.separated(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
                     itemCount: kaarten.length,
                     separatorBuilder: (_, _) => const SizedBox(height: 10),
                     itemBuilder: (context, i) => kaarten[i],
@@ -196,19 +269,25 @@ class _BeheerOverzichtScreenState extends State<BeheerOverzichtScreen> {
             (gebruiker.naam, dienst),
       ];
       if (regels.isEmpty) continue;
-      kaarten.add(_DagKaart(dag: dag, regels: regels));
+      kaarten.add(_DagKaart(dag: dag, regels: regels, onTik: _bewerk));
     }
     return kaarten;
   }
 }
 
 /// Eén dag uit het gezamenlijke overzicht: dag-label + 1 regel per
-/// gezinslid met iets die dag ("Naam · tijd (omschrijving)").
+/// gezinslid met iets die dag ("Naam · tijd (omschrijving)"). Tik een regel
+/// aan om ze te bewerken (F3).
 class _DagKaart extends StatelessWidget {
-  const _DagKaart({required this.dag, required this.regels});
+  const _DagKaart({
+    required this.dag,
+    required this.regels,
+    required this.onTik,
+  });
 
   final DateTime dag;
   final List<(String naam, Dienst dienst)> regels;
+  final ValueChanged<Dienst> onTik;
 
   @override
   Widget build(BuildContext context) {
@@ -217,36 +296,47 @@ class _DagKaart extends StatelessWidget {
       borderRadius: BorderRadius.circular(14),
       elevation: 1,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 14, 8, 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              naarDagLabel(dag),
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: AppKleuren.bosgroenDonker,
+            Padding(
+              padding: const EdgeInsets.only(left: 0, bottom: 4),
+              child: Text(
+                naarDagLabel(dag),
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AppKleuren.bosgroenDonker,
+                ),
               ),
             ),
-            const SizedBox(height: 8),
             for (final (naam, dienst) in regels)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      margin: const EdgeInsets.only(top: 6),
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: AppKleuren.terracotta,
-                        shape: BoxShape.circle,
+              InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () => onTik(dienst),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.only(top: 6),
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: AppKleuren.terracotta,
+                          shape: BoxShape.circle,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text('$naam · ${dienst.naarTekst()}')),
-                  ],
+                      const SizedBox(width: 8),
+                      Expanded(child: Text('$naam · ${dienst.naarTekst()}')),
+                      const Icon(
+                        Icons.chevron_right,
+                        size: 18,
+                        color: Colors.black38,
+                      ),
+                    ],
+                  ),
                 ),
               ),
           ],
