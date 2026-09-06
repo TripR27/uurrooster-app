@@ -191,7 +191,7 @@ class _BeheerOverzichtScreenState extends State<BeheerOverzichtScreen> {
       final regels = <(String naam, Dienst dienst)>[
         for (final gebruiker in overzicht.gebruikers)
           for (final dienst in overzicht.diensten.where(
-            (d) => d.gebruikerId == gebruiker.uid && d.datum == dagIso,
+            (d) => d.gebruikerId == gebruiker.uid && d.valtOpDatum(dagIso),
           ))
             (gebruiker.naam, dienst),
       ];

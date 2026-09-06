@@ -6,9 +6,13 @@ import '../services/dienst_service.dart';
 import '../util/datum_util.dart';
 
 /// Scherm om zelf iets toe te voegen zonder PDF - dat is niet altijd een
-/// werkshift, ook een privé-afspraak op het gezamenlijke rooster hoort hier
-/// (zie PROJECT_SPEC.md §1 en §5). Krijgt altijd `bron: handmatig` en
-/// dus een automatisch gegenereerd document-id (zie DienstService.aanmaken).
+/// werkshift, ook een privé-afspraak of een vakantie op het gezamenlijke
+/// rooster hoort hier (zie PROJECT_SPEC.md §1 en §4). Krijgt altijd
+/// `bron: handmatig` en dus een automatisch gegenereerd document-id (zie
+/// DienstService.aanmaken).
+///
+/// Een item kan een begin+einduur hebben, enkel een startuur (F1), de hele
+/// dag duren of meerdere dagen beslaan (F2).
 class DienstToevoegenScreen extends StatefulWidget {
   const DienstToevoegenScreen({
     super.key,
@@ -30,12 +34,19 @@ class _DienstToevoegenScreenState extends State<DienstToevoegenScreen> {
   // Standaard "nu" resp. "over een uur" - gewoon een handig startpunt, de
   // gebruiker past dit meteen zelf aan via de tijdkiezers hieronder.
   late DateTime _datum;
+  late DateTime _eindDatum;
   late TimeOfDay _startTijd;
   late TimeOfDay _eindTijd;
 
   /// Aangevinkt = enkel een startuur, geen einduur (bv. "afspraak om 15u,
   /// geen idee tot wanneer" - zie PROJECT_SPEC.md F1).
   bool _alleenStart = false;
+
+  /// Aangevinkt = de hele dag, geen uren (F2).
+  bool _heleDag = false;
+
+  /// Aangevinkt = een periode van meerdere dagen (F2).
+  bool _meerdereDagen = false;
 
   final _omschrijvingController = TextEditingController();
 
@@ -47,6 +58,7 @@ class _DienstToevoegenScreenState extends State<DienstToevoegenScreen> {
     super.initState();
     final nu = TimeOfDay.now();
     _datum = widget.initieleDatum ?? DateTime.now();
+    _eindDatum = _datum;
     _startTijd = nu;
     _eindTijd = nu.replacing(hour: (nu.hour + 1) % 24);
   }
@@ -60,14 +72,24 @@ class _DienstToevoegenScreenState extends State<DienstToevoegenScreen> {
   String _naarTijdString(TimeOfDay tijd) =>
       '${tijd.hour.toString().padLeft(2, '0')}:${tijd.minute.toString().padLeft(2, '0')}';
 
-  Future<void> _kiesDatum() async {
+  Future<void> _kiesDatum({required bool isStart}) async {
+    final huidige = isStart ? _datum : _eindDatum;
     final gekozen = await showDatePicker(
       context: context,
-      initialDate: _datum,
+      initialDate: huidige,
       firstDate: DateTime(_datum.year - 1),
-      lastDate: DateTime(_datum.year + 1),
+      lastDate: DateTime(_datum.year + 2),
     );
-    if (gekozen != null) setState(() => _datum = gekozen);
+    if (gekozen == null) return;
+    setState(() {
+      if (isStart) {
+        _datum = gekozen;
+        // Einddatum nooit vóór de begindatum laten staan.
+        if (_eindDatum.isBefore(_datum)) _eindDatum = _datum;
+      } else {
+        _eindDatum = gekozen;
+      }
+    });
   }
 
   Future<void> _kiesTijd({required bool isStart}) async {
@@ -86,6 +108,10 @@ class _DienstToevoegenScreenState extends State<DienstToevoegenScreen> {
   }
 
   Future<void> _opslaan() async {
+    if (_meerdereDagen && _eindDatum.isBefore(_datum)) {
+      setState(() => _fout = 'De einddatum ligt vóór de begindatum.');
+      return;
+    }
     setState(() {
       _bezig = true;
       _fout = null;
@@ -96,8 +122,12 @@ class _DienstToevoegenScreenState extends State<DienstToevoegenScreen> {
           gebruikerId: widget.profiel.uid,
           gebruikerNaam: widget.profiel.naam,
           datum: naarIsoDatum(_datum),
-          startTijd: _naarTijdString(_startTijd),
-          eindTijd: _alleenStart ? null : _naarTijdString(_eindTijd),
+          eindDatum: _meerdereDagen ? naarIsoDatum(_eindDatum) : null,
+          startTijd: _heleDag ? null : _naarTijdString(_startTijd),
+          eindTijd: (_heleDag || _alleenStart)
+              ? null
+              : _naarTijdString(_eindTijd),
+          heleDag: _heleDag,
           omschrijving: _omschrijvingController.text.trim(),
           bron: DienstBron.handmatig,
           aangemaaktOp: DateTime.now(),
@@ -127,48 +157,85 @@ class _DienstToevoegenScreenState extends State<DienstToevoegenScreen> {
             children: [
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Datum'),
+                title: Text(_meerdereDagen ? 'Van' : 'Datum'),
                 subtitle: Text(naarWeergaveDatum(naarIsoDatum(_datum))),
                 trailing: IconButton(
                   icon: const Icon(Icons.edit_calendar),
-                  onPressed: _bezig ? null : _kiesDatum,
+                  onPressed: _bezig ? null : () => _kiesDatum(isStart: true),
                 ),
               ),
-              const Divider(),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Van'),
-                subtitle: Text(_naarTijdString(_startTijd)),
-                trailing: IconButton(
-                  icon: const Icon(Icons.access_time),
-                  onPressed: _bezig ? null : () => _kiesTijd(isStart: true),
-                ),
-              ),
-              if (!_alleenStart)
+              if (_meerdereDagen)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Tot'),
-                  subtitle: Text(_naarTijdString(_eindTijd)),
+                  title: const Text('Tot en met'),
+                  subtitle: Text(naarWeergaveDatum(naarIsoDatum(_eindDatum))),
                   trailing: IconButton(
-                    icon: const Icon(Icons.access_time),
-                    onPressed: _bezig ? null : () => _kiesTijd(isStart: false),
+                    icon: const Icon(Icons.edit_calendar),
+                    onPressed: _bezig ? null : () => _kiesDatum(isStart: false),
                   ),
                 ),
               CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Alleen een startuur'),
-                subtitle: const Text('Geen einduur bekend'),
-                value: _alleenStart,
+                title: const Text('Meerdere dagen'),
+                subtitle: const Text('bv. een vakantie van 10 tot 15 sep'),
+                value: _meerdereDagen,
                 onChanged: _bezig
                     ? null
-                    : (v) => setState(() => _alleenStart = v ?? false),
+                    : (v) => setState(() {
+                        _meerdereDagen = v ?? false;
+                        if (_meerdereDagen && _eindDatum.isBefore(_datum)) {
+                          _eindDatum = _datum;
+                        }
+                      }),
+              ),
+              const Divider(),
+              if (!_heleDag) ...[
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Van'),
+                  subtitle: Text(_naarTijdString(_startTijd)),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.access_time),
+                    onPressed: _bezig ? null : () => _kiesTijd(isStart: true),
+                  ),
+                ),
+                if (!_alleenStart)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Tot'),
+                    subtitle: Text(_naarTijdString(_eindTijd)),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.access_time),
+                      onPressed: _bezig
+                          ? null
+                          : () => _kiesTijd(isStart: false),
+                    ),
+                  ),
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Alleen een startuur'),
+                  subtitle: const Text('Geen einduur bekend'),
+                  value: _alleenStart,
+                  onChanged: _bezig
+                      ? null
+                      : (v) => setState(() => _alleenStart = v ?? false),
+                ),
+              ],
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Hele dag'),
+                subtitle: const Text('Geen begin-/einduur'),
+                value: _heleDag,
+                onChanged: _bezig
+                    ? null
+                    : (v) => setState(() => _heleDag = v ?? false),
               ),
               const Divider(),
               TextField(
                 controller: _omschrijvingController,
                 decoration: const InputDecoration(
                   labelText: 'Omschrijving',
-                  hintText: 'bv. Tandarts, Privé-afspraak, ...',
+                  hintText: 'bv. Tandarts, Vakantie, Privé-afspraak, ...',
                 ),
               ),
               const SizedBox(height: 24),

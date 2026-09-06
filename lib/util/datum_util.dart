@@ -8,6 +8,22 @@ String naarIsoDatum(DateTime datum) {
   return '$j-$m-$d';
 }
 
+/// Alle dagen (op middernacht) van [van] t.e.m. [tot], inclusief - handig
+/// om een meerdaagse dienst (zie [Dienst.eindDatum], PROJECT_SPEC.md F2)
+/// over zijn losse kalenderdagen uit te spreiden.
+List<DateTime> dagenVanTot(DateTime van, DateTime tot) {
+  final dagen = <DateTime>[];
+  var d = DateTime(van.year, van.month, van.day);
+  final laatste = DateTime(tot.year, tot.month, tot.day);
+  while (!d.isAfter(laatste)) {
+    dagen.add(d);
+    // Via de constructor i.p.v. Duration(days: 1): dat laatste kan rond een
+    // zomer-/wintertijdwissel een dag "overslaan" of dubbel tellen.
+    d = DateTime(d.year, d.month, d.day + 1);
+  }
+  return dagen;
+}
+
 /// Het omgekeerde van [naarIsoDatum].
 DateTime vanIsoDatum(String iso) {
   final delen = iso.split('-');

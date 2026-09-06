@@ -42,12 +42,17 @@ class _ShiftenScreenState extends State<ShiftenScreen> {
   }
 
   /// Groepeert een platte lijst diensten per dag (zonder tijdscomponent),
-  /// zodat [TableCalendar] per dag kan opzoeken of er iets op staat.
+  /// zodat [TableCalendar] per dag kan opzoeken of er iets op staat. Een
+  /// meerdaagse dienst (zie PROJECT_SPEC.md F2) verschijnt op élke dag van
+  /// zijn reeks.
   Map<DateTime, List<Dienst>> _groepeerPerDag(List<Dienst> diensten) {
     final perDag = <DateTime, List<Dienst>>{};
     for (final dienst in diensten) {
-      final dag = vanIsoDatum(dienst.datum);
-      perDag.putIfAbsent(dag, () => []).add(dienst);
+      final start = vanIsoDatum(dienst.datum);
+      final eind = vanIsoDatum(dienst.eindDatum ?? dienst.datum);
+      for (final dag in dagenVanTot(start, eind)) {
+        perDag.putIfAbsent(dag, () => []).add(dienst);
+      }
     }
     return perDag;
   }

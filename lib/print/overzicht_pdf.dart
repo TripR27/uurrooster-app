@@ -63,7 +63,7 @@ Future<Uint8List> genereerOverzichtPdf({
       rij.cells[0].value = naarDagLabel(dag);
       for (var i = 0; i < gebruikers.length; i++) {
         final vanDezeGebruiker = diensten.where(
-          (d) => d.gebruikerId == gebruikers[i].uid && d.datum == dagIso,
+          (d) => d.gebruikerId == gebruikers[i].uid && d.valtOpDatum(dagIso),
         );
         rij.cells[i + 1].value = vanDezeGebruiker.isEmpty
             ? ''

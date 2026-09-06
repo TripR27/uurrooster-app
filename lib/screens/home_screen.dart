@@ -175,8 +175,10 @@ class _VolgendeShiftKaart extends StatelessWidget {
         }
 
         final vandaag = naarIsoDatum(DateTime.now());
+        // Ook een meerdaagse periode die nu bezig is (begonnen in het
+        // verleden, eindigt vandaag of later) telt als "aankomend".
         final volgende = (snapshot.data ?? [])
-            .where((d) => d.datum.compareTo(vandaag) >= 0)
+            .where((d) => (d.eindDatum ?? d.datum).compareTo(vandaag) >= 0)
             .toList();
 
         if (volgende.isEmpty) {
@@ -192,7 +194,9 @@ class _VolgendeShiftKaart extends StatelessWidget {
         return _KaartFrame(
           icoon: Icons.event_available,
           kleur: AppKleuren.bosgroen,
-          titel: _naarRelatieveDag(eerst.datum),
+          titel: eerst.valtOpDatum(vandaag)
+              ? (eerst.isMeerdaags ? 'Bezig' : 'Vandaag')
+              : _naarRelatieveDag(eerst.datum),
           inhoud: eerst.naarTekst(),
         );
       },

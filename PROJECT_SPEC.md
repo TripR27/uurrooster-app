@@ -82,9 +82,11 @@ aangemaakt bij de eerste login met enkel `naam` + `rol: "lid"`
 {
   gebruikerId: string,      // → gebruikers/{uid}
   gebruikerNaam: string,    // gedenormaliseerd, handig voor overzicht/print
-  datum: string,            // "2026-09-08" (ISO, sorteert als tekst)
-  startTijd: string,        // "09:00"
-  eindTijd: string | null,  // "17:00", of null = enkel een startuur bekend (F1)
+  datum: string,            // startdatum "2026-09-08" (ISO, sorteert als tekst)
+  eindDatum: string | null, // laatste dag van een meerdaagse periode (F2); null = eendaags
+  startTijd: string | null, // "09:00"; null als heleDag
+  eindTijd: string | null,  // "17:00"; null = enkel een startuur bekend (F1) of heleDag
+  heleDag: bool,            // duurt de hele dag, geen uren (F2)
   omschrijving: string,     // "Werk", "Nacht", of vrije tekst; nooit leeg bij PDF-import
   bron: "pdf-import" | "handmatig",
   aangemaaktOp: timestamp
@@ -109,8 +111,8 @@ Model in code: `lib/models/dienst.dart` (`Dienst`, enum `DienstBron`).
 | Home | `lib/screens/home_screen.dart` | gekleurde kop (wie ben je + uitloggen) + menukaarten: "PDF uploaden", "Shiften bekijken", "Gezamenlijk overzicht" (enkel beheerder), + "Volgende shift"-kaartje |
 | PDF uploaden | `lib/screens/pdf_upload_screen.dart` | kiest automatisch de juiste parser via `profiel.maakParser()`, toont voorbeeld, slaat pas op na bevestiging, popt terug met aantal |
 | Mijn shiften | `lib/screens/shiften_screen.dart` | `table_calendar` maandweergave met bolletje op dagen met iets; tik een dag → lijst eronder; FAB "Toevoegen" |
-| Toevoegen | `lib/screens/dienst_toevoegen_screen.dart` | datum + van/tot + omschrijving, altijd `bron: handmatig`. Checkbox "Alleen een startuur" → geen einduur (F1). |
-| Bewerken | `lib/screens/dienst_bewerken_screen.dart` | van/tot + omschrijving aanpassen (incl. "Alleen een startuur", F1), of verwijderen (met bevestiging). **Datum nooit aanpasbaar** (id-afspraak). |
+| Toevoegen | `lib/screens/dienst_toevoegen_screen.dart` | datum + van/tot + omschrijving, altijd `bron: handmatig`. Checkboxes "Alleen een startuur" (F1), "Meerdere dagen" + "Hele dag" (F2). |
+| Bewerken | `lib/screens/dienst_bewerken_screen.dart` | uren + omschrijving + "Alleen een startuur"/"Hele dag"/"Meerdere dagen" aanpassen, of verwijderen (met bevestiging). **Begindatum nooit aanpasbaar** (id-afspraak); einddatum van een meerdaagse periode wél. |
 | Gezamenlijk overzicht | `lib/screens/beheer_overzicht_screen.dart` | per maand (pijltjes), lijst dag-kaarten (1 regel per gezinslid), print-knop in de AppBar |
 
 Gedeelde bouwstenen: `lib/widgets/dienst_tile.dart` (één dienst-rij),
@@ -253,64 +255,54 @@ push naar `main`. Firestore-rules-wijzigingen publiceert Ryan zelf.
 ## F1 — Alleen een startuur (geen einduur) ✅ GEDAAN
 
 `eindTijd` is nu `String?` in `lib/models/dienst.dart`. `naarTekst()` toont
-`"vanaf 09:00"` als er geen einduur is. Toevoegen- en Bewerken-scherm
-hebben een checkbox **"Alleen een startuur"** die de "Tot"-rij verbergt en
-`eindTijd: null` opslaat. HTML/PDF-export en "Volgende shift"-kaart volgen
-automatisch via `naarTekst()`. Geen migratie nodig (bestaande documenten
-hebben een `eindTijd`). Test: `test/models/dienst_test.dart`.
+gewoon `"15:00"` (zonder "vanaf") als er geen einduur is. Toevoegen- en
+Bewerken-scherm hebben een checkbox **"Alleen een startuur"** die de
+"Tot"-rij verbergt en `eindTijd: null` opslaat. HTML/PDF-export en
+"Volgende shift"-kaart volgen automatisch via `naarTekst()`. Geen migratie
+nodig. Test: `test/models/dienst_test.dart`.
 
 ---
 
-## F2 — Hele dag / meerdere dagen zonder uur
+## F2 — Hele dag / meerdere dagen zonder uur ✅ GEDAAN
 
 **Wens:** kunnen aanduiden dat iets de hele dag duurt, of meerdere dagen
 (bv. "vakantie van 10 tot 15 september"), zonder uren.
 
-### Aanpak
+**Wat gebouwd is:**
 
-Middelgroot — raakt elk scherm dat diensten toont.
+- **Model** (`lib/models/dienst.dart`): 2 velden erbij —
+  `heleDag: bool` (default `false`) en `eindDatum: String?` (ISO, `null` =
+  eendaags). `startTijd` is nu ook `String?` (null bij `heleDag`). Eén
+  Firestore-document beslaat de hele periode.
+  - `Dienst.valtOpDatum(isoDatum)` — of de (mogelijk meerdaagse) dienst op
+    die dag valt. `Dienst.isMeerdaags`.
+  - `naarTekst()`: `heleDag` → **enkel de omschrijving** (bv. `"Vakantie"`,
+    terugval `"Hele dag"` als er geen omschrijving is).
+- **Helper** `dagenVanTot(van, tot)` in `lib/util/datum_util.dart` (alle
+  kalenderdagen van een reeks; zomer-/wintertijd-veilig via de
+  `DateTime`-constructor).
+- **Schermen** — overal waar `d.datum == dagIso` stond staat nu
+  `d.valtOpDatum(dagIso)`:
+  - `shiften_screen.dart` `_groepeerPerDag` → kalenderbolletje + dag-lijst
+    op élke dag van de reeks.
+  - `beheer_overzicht_screen.dart` `_dagKaarten`.
+  - `overzicht_html.dart` + `overzicht_pdf.dart` (print).
+  - `home_screen.dart` "Volgende shift": een lopende meerdaagse periode
+    telt als aankomend, titel wordt "Bezig".
+- **Toevoegen + Bewerken**: checkboxes **"Meerdere dagen"** (→ tweede
+  datumkiezer "Tot en met", moet ≥ begindatum) en **"Hele dag"** (→
+  verbergt van/tot + "alleen startuur"). Begindatum blijft niet-aanpasbaar
+  in Bewerken (id-afspraak); de einddatum van een meerdaagse periode mag
+  daar wél aangepast worden.
+- **Migratie:** geen. Ontbrekende `heleDag`/`eindDatum`/`startTijd` →
+  defaults (`false` / `null` / behouden) bij het inlezen.
+- **Tests:** `test/models/dienst_test.dart`,
+  `test/util/datum_util_test.dart`.
 
-- **Model** (`lib/models/dienst.dart`), 2 velden erbij:
-  - `heleDag: bool` (default `false`). `true` → `startTijd`/`eindTijd`
-    genegeerd/null.
-  - `eindDatum: String?` (ISO, default `null` = eendaagse dienst). Voor een
-    meerdaagse periode loopt de dienst van `datum` t.e.m. `eindDatum`.
-  - Eén Firestore-document representeert de **hele periode**; de UI "klapt
-    hem open" over de dagen. Zo blijft "vakantie 10–15 sep" één ding om te
-    bewerken/verwijderen.
-- **Nieuwe helper** in `datum_util.dart`: `dienstDagen(Dienst) →
-  List<DateTime>` (alle dagen in `datum..eindDatum`, inclusief).
-- **`Dienst.naarTekst()`**: `heleDag && eindDatum == null` → `"Hele dag
-  (Vakantie)"`; meerdaags → tonen als `"Vakantie (10-09 → 15-09)"` op de
-  kaart, of per dag "Hele dag" in het overzicht.
-- **Schermen** — overal waar nu `d.datum == dagIso` staat, wordt het
-  "valt `dagIso` binnen `[datum, eindDatum]`":
-  - `shiften_screen.dart`: `_groepeerPerDag` + `eventLoader` (kalender krijgt
-    dan een bolletje op élke dag van de periode).
-  - `beheer_overzicht_screen.dart`: `_dagKaarten` + `_DagKaart`.
-  - `overzicht_html.dart` + `overzicht_pdf.dart`: de dag-loop.
-- **Toevoegen + Bewerken**:
-  - `SwitchListTile` **"Hele dag"** → verbergt van/tot.
-  - `SwitchListTile` **"Meerdere dagen"** → tweede datumkiezer voor
-    `eindDatum` (moet ≥ `datum` zijn).
-  - **Bewerken** verbiedt nu élke datumwijziging (id-afspraak). Voor
-    `bron: handmatig` mag dat versoepelen: `datum`/`eindDatum` bewerkbaar
-    maken (auto-id, geen probleem). Voor `bron: pdf-import` blijft datum
-    vast.
-- **"Volgende shift"-kaart**: een lopende meerdaagse periode
-  (`datum ≤ vandaag ≤ eindDatum`) telt als "nu bezig".
-
-### Migratie
-
-Bestaande documenten missen `heleDag`/`eindDatum` → defaults op het
-inlezen (`false` / `null`). Geen migratiescript nodig.
-
-### Beslist
-
-**Eén Firestore-record voor de hele periode.** "Vakantie 10–15 sep" is
-één ding om te bewerken/verwijderen; de app toont het op elke dag in de
-reeks (via `dienstDagen(...)`). Meerdaagse handmatige items krijgen een
-auto-gegenereerd id (zoals nu al voor `bron: handmatig`).
+> **Mogelijke opruiming later:** `DienstToevoegenScreen` en
+> `DienstBewerkenScreen` delen nu een flink stuk (bijna identieke)
+> formulier-UI. Een gedeeld `_DienstFormulier`-widget zou dat kunnen
+> samenbrengen — bewust niet nu gedaan om de wijziging klein te houden.
 
 ---
 

@@ -60,7 +60,7 @@ String bouwOverzichtHtml({
     buffer.writeln('<tr><td class="dag">${_escape(naarDagLabel(dag))}</td>');
     for (final gebruiker in gebruikers) {
       final vanDezeGebruiker = diensten.where(
-        (d) => d.gebruikerId == gebruiker.uid && d.datum == dagIso,
+        (d) => d.gebruikerId == gebruiker.uid && d.valtOpDatum(dagIso),
       );
       final inhoud = vanDezeGebruiker.isEmpty
           ? ''

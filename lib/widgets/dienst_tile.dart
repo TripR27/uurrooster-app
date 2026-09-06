@@ -15,11 +15,16 @@ class DienstTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final titel = dienst.isMeerdaags
+        ? '${naarWeergaveDatum(dienst.datum)} → '
+              '${naarWeergaveDatum(dienst.eindDatum!)}'
+        : naarWeergaveDatum(dienst.datum);
+
     return ListTile(
       dense: true,
       onTap: onTap,
       leading: const Icon(Icons.calendar_today),
-      title: Text(naarWeergaveDatum(dienst.datum)),
+      title: Text(titel),
       subtitle: Text(dienst.naarTekst()),
       trailing: onTap == null ? null : const Icon(Icons.chevron_right),
     );
