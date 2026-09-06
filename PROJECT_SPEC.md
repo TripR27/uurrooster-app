@@ -247,9 +247,10 @@ committen). Daarna `firebase appdistribution:distribute` per build.
 
 # DEEL B — Nieuwe features: analyse & stappenplan
 
-Vier gevraagde uitbreidingen. Volgorde: **F1** ✅ → **F2** ✅ →
-**UX-opfrissing formulier** ✅ → **F3** ✅ → **F4** (bezig: F4.1 ✅,
-F4.2/F4.3 te doen).
+Vier gevraagde uitbreidingen — **allemaal gebouwd en getest** (F1, F2,
+UX-opfrissing, F3, F4). Details per feature hieronder. Openstaand: Ryan
+publiceert de F3-`firestore.rules` (gedaan volgens Ryan) en test F4 een
+keer op zijn eigen Android-toestel.
 
 Elke feature: eerst de code-wijziging, dan `flutter analyze` + `flutter
 test` + visuele check via de browser-tool met het testaccount, dan commit +
@@ -468,10 +469,7 @@ De knop toont dan gewoon "geen lessen gevonden".
 | ---- | ------ | ------ |
 | **F4.1** | ✅ GEDAAN | Datamodel (`DienstBron.schoolrooster`, `Gebruiker.webuntisKlasId`/`webuntisMinor`/`heeftSchoolrooster`) + `lib/school/schoolrooster_service.dart` (`SchoolroosterService.haalMaand` = HTTP-orkestratie; `leesWeekrooster(...)` = pure filter; `schooldagNaarDienst(...)`) + `DienstService.slaSchoolroosterOp` (upsert + opruimen). Getest tegen een **echte** WebUntis-week (`test/school/fixtures/week_2025-11-03.json`) - de dag-vensters kloppen exact. |
 | **F4.2** | ✅ GEDAAN | `lib/screens/schoolrooster_screen.dart` (maandkiezer → "Rooster ophalen" → voorbeeldlijst → "Opslaan"; op web een uitleg i.p.v. de knop) + kaart "Schoolrooster" op `HomeScreen` (enkel als `profiel.heeftSchoolrooster`) + schooltas-icoon in `DienstTile` voor `bron: schoolrooster`. |
-| **F4.3** | te doen | Oppoetsen na Ryans echte Android-test: foutmelding-UX, randgevallen. |
-
-**Echte end-to-end-test** (WebUntis effectief ophalen) kan enkel op Android
-— dat doet Ryan één keer op zijn toestel na F4.2.
+| **F4.3** | ✅ GETEST | End-to-end op een Android-emulator (release-APK): inloggen → Schoolrooster → november 2025 → Ophalen (18 schooldagen, kloppende vensters) → Opslaan → verschijnen met schooltas-icoon in "Mijn shiften", bewerkbaar. Restant = eventuele bijsturing na Ryans test op zijn eigen toestel. |
 
 ### Beslist / bevestigd (F4)
 
