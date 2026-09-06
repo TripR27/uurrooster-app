@@ -9,6 +9,7 @@ import '../theme.dart';
 import '../util/datum_util.dart';
 import 'beheer_overzicht_screen.dart';
 import 'pdf_upload_screen.dart';
+import 'schoolrooster_screen.dart';
 import 'shiften_screen.dart';
 
 /// Startscherm na het inloggen: wie ben je, en van daaruit met 2 duidelijke
@@ -132,6 +133,30 @@ class _StartMenu extends StatelessWidget {
                             BeheerOverzichtScreen(profiel: profiel),
                       ),
                     );
+                  },
+                ),
+              ],
+              if (profiel.heeftSchoolrooster) ...[
+                const SizedBox(height: 16),
+                _MenuKaart(
+                  icoon: Icons.school,
+                  titel: 'Schoolrooster',
+                  omschrijving: 'Je schooldagen ophalen uit WebUntis',
+                  kleur: AppKleuren.terracotta,
+                  onTap: () async {
+                    final aantal = await Navigator.of(context).push<int>(
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            SchoolroosterScreen(profiel: profiel),
+                      ),
+                    );
+                    if (aantal != null && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('$aantal schooldagen opgeslagen.'),
+                        ),
+                      );
+                    }
                   },
                 ),
               ],

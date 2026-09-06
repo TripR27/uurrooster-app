@@ -114,6 +114,7 @@ Model in code: `lib/models/dienst.dart` (`Dienst`, enum `DienstBron`).
 | Toevoegen | `lib/screens/dienst_toevoegen_screen.dart` | embed van `DienstFormulier`; altijd `bron: handmatig`. Optioneel `voorGebruiker` (beheerder voegt toe voor iemand anders, F3). |
 | Bewerken | `lib/screens/dienst_bewerken_screen.dart` | embed van `DienstFormulier` (`datumVast`), + verwijderen met bevestiging. |
 | Formulier | `lib/widgets/dienst_formulier.dart` | gedeeld: "Met uren"/"Hele dag"-keuze, datum of datumbereik (range picker), Van/Tot-velden (× = enkel startuur), omschrijving. |
+| Schoolrooster | `lib/screens/schoolrooster_screen.dart` | F4: maand kiezen → ophalen uit WebUntis → voorbeeld → opslaan. Enkel als `profiel.heeftSchoolrooster`; enkel op Android. |
 | Gezamenlijk overzicht | `lib/screens/beheer_overzicht_screen.dart` | per maand (pijltjes), lijst dag-kaarten (1 regel per gezinslid), print-knop; tik een regel → bewerken, FAB → toevoegen voor een gezinslid (F3) |
 
 Gedeelde bouwstenen: `lib/widgets/dienst_tile.dart` (één dienst-rij),
@@ -466,8 +467,8 @@ De knop toont dan gewoon "geen lessen gevonden".
 | Stap | Status | Inhoud |
 | ---- | ------ | ------ |
 | **F4.1** | ✅ GEDAAN | Datamodel (`DienstBron.schoolrooster`, `Gebruiker.webuntisKlasId`/`webuntisMinor`/`heeftSchoolrooster`) + `lib/school/schoolrooster_service.dart` (`SchoolroosterService.haalMaand` = HTTP-orkestratie; `leesWeekrooster(...)` = pure filter; `schooldagNaarDienst(...)`) + `DienstService.slaSchoolroosterOp` (upsert + opruimen). Getest tegen een **echte** WebUntis-week (`test/school/fixtures/week_2025-11-03.json`) - de dag-vensters kloppen exact. |
-| **F4.2** | te doen | `SchoolroosterScreen` (maandkiezer → "Ophalen" → voorbeeldlijst → "Opslaan", look zoals `PdfUploadScreen`) + kaart op `HomeScreen` (enkel als `profiel.heeftSchoolrooster`, op web verborgen/uitgelegd) + "School"-weergave in `DienstTile` (schooltas-icoon). |
-| **F4.3** | te doen | Randgevallen + oppoetsen: lege maand ("nog geen rooster gepubliceerd"), foutmelding-UX, herhaald ophalen. |
+| **F4.2** | ✅ GEDAAN | `lib/screens/schoolrooster_screen.dart` (maandkiezer → "Rooster ophalen" → voorbeeldlijst → "Opslaan"; op web een uitleg i.p.v. de knop) + kaart "Schoolrooster" op `HomeScreen` (enkel als `profiel.heeftSchoolrooster`) + schooltas-icoon in `DienstTile` voor `bron: schoolrooster`. |
+| **F4.3** | te doen | Oppoetsen na Ryans echte Android-test: foutmelding-UX, randgevallen. |
 
 **Echte end-to-end-test** (WebUntis effectief ophalen) kan enkel op Android
 — dat doet Ryan één keer op zijn toestel na F4.2.

@@ -23,7 +23,11 @@ class DienstTile extends StatelessWidget {
     return ListTile(
       dense: true,
       onTap: onTap,
-      leading: const Icon(Icons.calendar_today),
+      leading: Icon(
+        dienst.bron == DienstBron.schoolrooster
+            ? Icons.school_outlined
+            : Icons.calendar_today,
+      ),
       title: Text(titel),
       subtitle: Text(dienst.naarTekst()),
       trailing: onTap == null ? null : const Icon(Icons.chevron_right),
