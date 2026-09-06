@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'auth_gate.dart';
@@ -27,6 +28,16 @@ class MyApp extends StatelessWidget {
       title: 'Gezinsrooster',
       theme: AppTheme.light,
       debugShowCheckedModeBanner: false,
+      // Nederlands: vertaalt de ingebouwde Material-teksten (datumkiezer,
+      // "Annuleren"/"OK", ...) én zorgt dat de week op maandag begint in
+      // showDatePicker / showDateRangePicker.
+      locale: const Locale('nl'),
+      supportedLocales: const [Locale('nl')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       // Altijd 24u-notatie (07:00, 17:00, ...) i.p.v. AM/PM - overal in de
       // app waar een tijd getoond/gekozen wordt (bv. showTimePicker in
       // DienstBewerkenScreen), ongeacht de systeeminstelling van het

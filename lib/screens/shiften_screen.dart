@@ -110,6 +110,7 @@ class _ShiftenScreenState extends State<ShiftenScreen> {
               children: [
                 TableCalendar<Dienst>(
                   locale: 'nl_BE',
+                  startingDayOfWeek: StartingDayOfWeek.monday,
                   firstDay: DateTime(_gefocusteDag.year - 1),
                   lastDay: DateTime(_gefocusteDag.year + 2),
                   focusedDay: _gefocusteDag,
