@@ -14,7 +14,7 @@ import 'shiften_screen.dart';
 /// Startscherm na het inloggen: wie ben je, en van daaruit met 2 duidelijke
 /// knoppen naar "PDF uploaden" (PdfUploadScreen) of "Shiften bekijken"
 /// (ShiftenScreen, die zelf toelaat om een shift te corrigeren/verwijderen -
-/// zie PROJECT_SPEC.md sectie 1, PDF-import mag nooit de enige manier zijn
+/// zie PROJECT_SPEC.md §1, PDF-import mag nooit de enige manier zijn
 /// waarop een shift ontstaat of verandert).
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});

@@ -10,7 +10,7 @@ import '../theme.dart';
 import '../util/datum_util.dart';
 
 /// Gezamenlijk overzicht van alle gezinsleden, enkel voor de beheerder (zie
-/// PROJECT_SPEC.md sectie 2 en 8) - een tabel met 1 kolom per persoon en 1
+/// PROJECT_SPEC.md §2 en §5) - een tabel met 1 kolom per persoon en 1
 /// rij per dag van de gekozen maand, met een knop om dat rechtstreeks af te
 /// drukken (sectie 9, zie `_printen` hieronder).
 class BeheerOverzichtScreen extends StatefulWidget {

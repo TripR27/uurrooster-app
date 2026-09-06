@@ -34,7 +34,7 @@ class _DagKolom {
 
 /// Rooster-formaat "A": het "Dienstrooster"-PDF van de
 /// keuken/afwaskeuken-roostergroep (Ryan en mama gebruiken dit formaat,
-/// zie PROJECT_SPEC.md sectie 6).
+/// zie PROJECT_SPEC.md §6).
 ///
 /// Het is een horizontale tabel: bovenaan per kolom een dag-van-de-week +
 /// datumnummer, links per rij een personeelsnaam. Een cel is ofwel leeg

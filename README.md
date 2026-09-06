@@ -25,8 +25,8 @@ Zonder deze vlag start de app wel op, maar kan Firebase niet verbinden
 
 Voor Android is er een apart env-bestand, `.env.android` (ook niet
 gecommit) - de Android-app heeft in Firebase namelijk zijn eigen
-`apiKey`/`appId`, los van de webapp (zie PROJECT_SPEC.md fase 12 voor hoe
-je die waarden ophaalt). Zelfde bestandsformaat als `.env`, enkel zonder
+`apiKey`/`appId`, los van de webapp (zie PROJECT_SPEC.md §8 voor de
+Firebase-config). Zelfde bestandsformaat als `.env`, enkel zonder
 `authDomain` (dat is web-only):
 
 ```bash
@@ -39,6 +39,6 @@ toe te staan), geen Play Store nodig.
 
 De release-build is ondertekend met een echte keystore
 (`android/upload-keystore.jks` + `android/key.properties`, allebei
-gitignored - zie PROJECT_SPEC.md sectie 13 voor waar/hoe die staan).
+gitignored - zie PROJECT_SPEC.md §8 voor waar/hoe die staan).
 Ontbreken die bestanden (bv. een nieuwe checkout), dan valt de build
 automatisch terug op de tijdelijke debug-signing.

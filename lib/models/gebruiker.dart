@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../pdf_import/rooster_parser.dart';
 
-/// De twee rollen uit PROJECT_SPEC.md sectie 2: een gewoon gezinslid kan
+/// De twee rollen uit PROJECT_SPEC.md §2: een gewoon gezinslid kan
 /// enkel zijn/haar eigen rooster beheren, de beheerder mag daarnaast ook
 /// het gezamenlijke overzicht van iedereen bekijken en printen.
 enum GebruikerRol { lid, beheerder }
@@ -25,7 +25,7 @@ extension GebruikerRolWaarde on GebruikerRol {
 }
 
 /// Eén document uit de Firestore-collectie `gebruikers` (zie
-/// PROJECT_SPEC.md, sectie 5). Het document-id is gelijk aan de Firebase
+/// PROJECT_SPEC.md, §4). Het document-id is gelijk aan de Firebase
 /// Auth uid van het account, zodat je met de uid altijd meteen het
 /// bijhorende profiel (naam + rol) kan opzoeken.
 class Gebruiker {

@@ -6,7 +6,7 @@ import '../util/datum_util.dart';
 
 /// Scherm om één bestaande dienst te corrigeren of te verwijderen - nodig
 /// omdat een PDF-import wel eens verkeerd kan uitpakken, en sowieso
-/// omdat de app dit altijd moet toelaten (zie PROJECT_SPEC.md, sectie 1).
+/// omdat de app dit altijd moet toelaten (zie PROJECT_SPEC.md, §1).
 ///
 /// De datum is hier bewust nooit aanpasbaar (enkel uur + omschrijving) - een
 /// PDF-import krijgt een document-id gebaseerd op zijn datum (zie
@@ -26,6 +26,10 @@ class DienstBewerkenScreen extends StatefulWidget {
 class _DienstBewerkenScreenState extends State<DienstBewerkenScreen> {
   late TimeOfDay _startTijd;
   late TimeOfDay _eindTijd;
+
+  /// Aangevinkt = enkel een startuur, geen einduur (zie PROJECT_SPEC.md F1).
+  late bool _alleenStart;
+
   late final TextEditingController _omschrijvingController;
 
   bool _bezig = false;
@@ -35,7 +39,12 @@ class _DienstBewerkenScreenState extends State<DienstBewerkenScreen> {
   void initState() {
     super.initState();
     _startTijd = _naarTimeOfDay(widget.dienst.startTijd);
-    _eindTijd = _naarTimeOfDay(widget.dienst.eindTijd);
+    _alleenStart = widget.dienst.eindTijd == null;
+    // Als er nog geen einduur was: een uur na de start als handig startpunt
+    // voor wanneer de gebruiker "Alleen een startuur" toch uitvinkt.
+    _eindTijd = widget.dienst.eindTijd != null
+        ? _naarTimeOfDay(widget.dienst.eindTijd!)
+        : _startTijd.replacing(hour: (_startTijd.hour + 1) % 24);
     _omschrijvingController = TextEditingController(
       text: widget.dienst.omschrijving,
     );
@@ -83,7 +92,7 @@ class _DienstBewerkenScreenState extends State<DienstBewerkenScreen> {
           gebruikerNaam: widget.dienst.gebruikerNaam,
           datum: widget.dienst.datum,
           startTijd: _naarTijdString(_startTijd),
-          eindTijd: _naarTijdString(_eindTijd),
+          eindTijd: _alleenStart ? null : _naarTijdString(_eindTijd),
           omschrijving: _omschrijvingController.text.trim(),
           bron: widget.dienst.bron,
           aangemaaktOp: widget.dienst.aangemaaktOp,
@@ -104,8 +113,7 @@ class _DienstBewerkenScreenState extends State<DienstBewerkenScreen> {
         title: const Text('Shift verwijderen?'),
         content: Text(
           '${naarWeergaveDatum(widget.dienst.datum)}, '
-          '${widget.dienst.startTijd} - ${widget.dienst.eindTijd} wordt '
-          'verwijderd.',
+          '${widget.dienst.naarTekst()} wordt verwijderd.',
         ),
         actions: [
           TextButton(
@@ -175,14 +183,24 @@ class _DienstBewerkenScreenState extends State<DienstBewerkenScreen> {
                   onPressed: _bezig ? null : () => _kiesTijd(isStart: true),
                 ),
               ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Tot'),
-                subtitle: Text(_naarTijdString(_eindTijd)),
-                trailing: IconButton(
-                  icon: const Icon(Icons.access_time),
-                  onPressed: _bezig ? null : () => _kiesTijd(isStart: false),
+              if (!_alleenStart)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Tot'),
+                  subtitle: Text(_naarTijdString(_eindTijd)),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.access_time),
+                    onPressed: _bezig ? null : () => _kiesTijd(isStart: false),
+                  ),
                 ),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Alleen een startuur'),
+                subtitle: const Text('Geen einduur bekend'),
+                value: _alleenStart,
+                onChanged: _bezig
+                    ? null
+                    : (v) => setState(() => _alleenStart = v ?? false),
               ),
               const Divider(),
               TextField(

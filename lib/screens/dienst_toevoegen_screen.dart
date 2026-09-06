@@ -7,7 +7,7 @@ import '../util/datum_util.dart';
 
 /// Scherm om zelf iets toe te voegen zonder PDF - dat is niet altijd een
 /// werkshift, ook een privé-afspraak op het gezamenlijke rooster hoort hier
-/// (zie PROJECT_SPEC.md sectie 1 en 7). Krijgt altijd `bron: handmatig` en
+/// (zie PROJECT_SPEC.md §1 en §5). Krijgt altijd `bron: handmatig` en
 /// dus een automatisch gegenereerd document-id (zie DienstService.aanmaken).
 class DienstToevoegenScreen extends StatefulWidget {
   const DienstToevoegenScreen({
@@ -32,6 +32,11 @@ class _DienstToevoegenScreenState extends State<DienstToevoegenScreen> {
   late DateTime _datum;
   late TimeOfDay _startTijd;
   late TimeOfDay _eindTijd;
+
+  /// Aangevinkt = enkel een startuur, geen einduur (bv. "afspraak om 15u,
+  /// geen idee tot wanneer" - zie PROJECT_SPEC.md F1).
+  bool _alleenStart = false;
+
   final _omschrijvingController = TextEditingController();
 
   bool _bezig = false;
@@ -92,7 +97,7 @@ class _DienstToevoegenScreenState extends State<DienstToevoegenScreen> {
           gebruikerNaam: widget.profiel.naam,
           datum: naarIsoDatum(_datum),
           startTijd: _naarTijdString(_startTijd),
-          eindTijd: _naarTijdString(_eindTijd),
+          eindTijd: _alleenStart ? null : _naarTijdString(_eindTijd),
           omschrijving: _omschrijvingController.text.trim(),
           bron: DienstBron.handmatig,
           aangemaaktOp: DateTime.now(),
@@ -139,14 +144,24 @@ class _DienstToevoegenScreenState extends State<DienstToevoegenScreen> {
                   onPressed: _bezig ? null : () => _kiesTijd(isStart: true),
                 ),
               ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Tot'),
-                subtitle: Text(_naarTijdString(_eindTijd)),
-                trailing: IconButton(
-                  icon: const Icon(Icons.access_time),
-                  onPressed: _bezig ? null : () => _kiesTijd(isStart: false),
+              if (!_alleenStart)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Tot'),
+                  subtitle: Text(_naarTijdString(_eindTijd)),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.access_time),
+                    onPressed: _bezig ? null : () => _kiesTijd(isStart: false),
+                  ),
                 ),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Alleen een startuur'),
+                subtitle: const Text('Geen einduur bekend'),
+                value: _alleenStart,
+                onChanged: _bezig
+                    ? null
+                    : (v) => setState(() => _alleenStart = v ?? false),
               ),
               const Divider(),
               TextField(

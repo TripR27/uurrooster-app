@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Waar een dienst vandaan komt: automatisch uit een geüpload PDF-rooster,
 /// of met de hand ingevoerd (bv. voor privé-afspraken op het gezamenlijke
-/// rooster, zie PROJECT_SPEC.md sectie 1).
+/// rooster, zie PROJECT_SPEC.md §1).
 enum DienstBron { pdfImport, handmatig }
 
 extension DienstBronWaarde on DienstBron {
@@ -33,7 +33,7 @@ class Dienst {
     required this.gebruikerNaam,
     required this.datum,
     required this.startTijd,
-    required this.eindTijd,
+    this.eindTijd,
     this.omschrijving = '',
     required this.bron,
     required this.aangemaaktOp,
@@ -55,8 +55,9 @@ class Dienst {
   /// bv. "09:00".
   final String startTijd;
 
-  /// bv. "17:00".
-  final String eindTijd;
+  /// bv. "17:00", of `null` als er enkel een startuur bekend is (bv. "een
+  /// afspraak om 15u, geen idee tot wanneer" - zie PROJECT_SPEC.md F1).
+  final String? eindTijd;
 
   final String omschrijving;
   final DienstBron bron;
@@ -70,18 +71,21 @@ class Dienst {
       gebruikerNaam: data['gebruikerNaam'] as String,
       datum: data['datum'] as String,
       startTijd: data['startTijd'] as String,
-      eindTijd: data['eindTijd'] as String,
+      eindTijd: data['eindTijd'] as String?,
       omschrijving: data['omschrijving'] as String? ?? '',
       bron: DienstBronWaarde.vanWaarde(data['bron'] as String),
       aangemaaktOp: (data['aangemaaktOp'] as Timestamp).toDate(),
     );
   }
 
-  /// bv. "09:00 - 17:00 (Werk)" - gedeeld tussen [DienstTile], het
-  /// gezamenlijke overzicht en de PDF-export ervan. [scheidingVoorOmschrijving]
-  /// laat toe de omschrijving op een nieuwe regel te zetten i.p.v. een spatie.
+  /// bv. "09:00 - 17:00 (Werk)", of "vanaf 09:00 (Tandarts)" als er geen
+  /// einduur is - gedeeld tussen [DienstTile], het gezamenlijke overzicht en
+  /// de PDF-/HTML-export ervan. [scheidingVoorOmschrijving] laat toe de
+  /// omschrijving op een nieuwe regel te zetten i.p.v. een spatie.
   String naarTekst({String scheidingVoorOmschrijving = ' '}) {
-    final tijd = '$startTijd - $eindTijd';
+    final tijd = eindTijd == null
+        ? 'vanaf $startTijd'
+        : '$startTijd - $eindTijd';
     return omschrijving.isEmpty
         ? tijd
         : '$tijd$scheidingVoorOmschrijving($omschrijving)';

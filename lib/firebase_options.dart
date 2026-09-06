@@ -3,8 +3,8 @@
 // vanuit een (gitignored) env-bestand, nooit hardcoded of gecommit:
 // - web: .env, via --dart-define-from-file=.env
 // - Android: .env.android, via --dart-define-from-file=.env.android
-// Zie README.md voor de exacte commando's en PROJECT_SPEC.md fase 12 voor
-// hoe je de Android-waarden ophaalt uit de Firebase console.
+// Zie README.md voor de exacte commando's en PROJECT_SPEC.md §8 voor de
+// Firebase-config (web + Android).
 
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'

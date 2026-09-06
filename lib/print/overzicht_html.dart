@@ -32,7 +32,7 @@ const _stijl = '''
 /// `lib/print/printen.dart`) - titel bovenaan, daaronder een tabel met 1
 /// kolom per gezinslid en 1 rij per dag van de maand, met de naam-/
 /// dag-kolommen in een lichtgrijs vakje + dikkere tekst voor wat meer
-/// onderscheid (zie PROJECT_SPEC.md sectie 9).
+/// onderscheid (zie PROJECT_SPEC.md §7).
 String bouwOverzichtHtml({
   required DateTime maandStart,
   required List<Gebruiker> gebruikers,

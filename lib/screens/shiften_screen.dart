@@ -14,7 +14,7 @@ import 'dienst_toevoegen_screen.dart';
 /// (maand per maand, zie [TableCalendar]) met een bolletje op elke dag
 /// waarop iets staat. Tik een dag aan om de shiften/afspraken van die dag
 /// eronder te zien, en van daaruit te corrigeren/verwijderen (zie
-/// PROJECT_SPEC.md sectie 1 - PDF-import mag nooit de enige manier zijn
+/// PROJECT_SPEC.md §1 - PDF-import mag nooit de enige manier zijn
 /// waarop een shift ontstaat of verandert).
 ///
 /// Vroeger stond dit als platte lijst rechtstreeks op [HomeScreen] (in

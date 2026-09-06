@@ -3,14 +3,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/dienst.dart';
 
 /// Leest en schrijft de Firestore-collectie `diensten` (zie
-/// PROJECT_SPEC.md, sectie 5).
+/// PROJECT_SPEC.md, §4).
 class DienstService {
   DienstService._();
 
   static final _diensten = FirebaseFirestore.instance.collection('diensten');
 
   /// Schrijft het resultaat van een PDF-import weg. Elke dienst krijgt als
-  /// document-id `{gebruikerId}_{datum}` (zie PROJECT_SPEC.md, sectie 5) -
+  /// document-id `{gebruikerId}_{datum}` (zie PROJECT_SPEC.md, §4) -
   /// een herhaalde import van dezelfde periode overschrijft dus gewoon de
   /// vorige waarde in plaats van duplicaten aan te maken.
   static Future<void> slaPdfImportOp(List<Dienst> diensten) async {
@@ -23,7 +23,7 @@ class DienstService {
   }
 
   /// Voegt een nieuwe handmatige dienst toe (bv. een privé-afspraak, zie
-  /// PROJECT_SPEC.md sectie 1) met een automatisch gegenereerd document-id -
+  /// PROJECT_SPEC.md §1) met een automatisch gegenereerd document-id -
   /// in tegenstelling tot een PDF-import kunnen er zo wel meerdere diensten
   /// per dag per gebruiker bestaan (bv. een werkdienst + een afspraak).
   static Future<void> aanmaken(Dienst dienst) async {
@@ -68,7 +68,7 @@ class DienstService {
 
   /// Alle diensten van meerdere gebruikers binnen een periode (beide data
   /// inbegrepen) - voor het gezamenlijke overzicht van de beheerder (zie
-  /// PROJECT_SPEC.md, sectie 8).
+  /// PROJECT_SPEC.md, §5).
   ///
   /// Doet bewust één losse query per gebruiker (zelfde `where('gebruikerId')`
   /// als [eigenDiensten]) i.p.v. één query met `whereIn` + een datumfilter:

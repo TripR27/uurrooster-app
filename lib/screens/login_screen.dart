@@ -13,7 +13,7 @@ import '../theme.dart';
 ///
 /// Er is bewust GEEN "registreer je hier"-optie: dit is een privé-gezinsapp
 /// met maar 3 accounts, die de beheerder zelf handmatig aanmaakt via de
-/// Firebase Console (zie PROJECT_SPEC.md, sectie 11).
+/// Firebase Console (zie PROJECT_SPEC.md, §8).
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 

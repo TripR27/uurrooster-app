@@ -28,7 +28,7 @@ const _maandNamen = [
 /// Gebruikt `syncfusion_flutter_pdf` (al een dependency voor het inlezen
 /// van PDF-roosters, kan ook schrijven) i.p.v. de packages `pdf`/`printing`:
 /// die botsen qua `xml`-versie met `syncfusion_flutter_pdf` (zie
-/// PROJECT_SPEC.md sectie 9).
+/// PROJECT_SPEC.md §7).
 Future<Uint8List> genereerOverzichtPdf({
   required DateTime maandStart,
   required List<Gebruiker> gebruikers,
