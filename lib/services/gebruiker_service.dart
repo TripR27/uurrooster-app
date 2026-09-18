@@ -61,6 +61,13 @@ class GebruikerService {
     await _gebruikers.doc(uid).update({'zichtbaarInOverzicht': zichtbaar});
   }
 
+  /// Zet je eigen bolletjeskleur in het gezamenlijke overzicht (F9) - enkel
+  /// voor je eigen profiel (`eigenGebruiker(uid)` in firestore.rules), elk
+  /// gezinslid kiest dit zelf.
+  static Future<void> zetKleur(String uid, String hexKleur) async {
+    await _gebruikers.doc(uid).update({'kleur': hexKleur});
+  }
+
   static Future<Gebruiker> haalOfMaakProfiel(User account) async {
     final doc = await _gebruikers.doc(account.uid).get();
     if (doc.exists) {

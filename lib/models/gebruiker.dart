@@ -38,6 +38,7 @@ class Gebruiker {
     this.webuntisKlasId,
     this.webuntisMinor,
     this.zichtbaarInOverzicht = true,
+    this.kleur,
   });
 
   final String uid;
@@ -49,6 +50,12 @@ class Gebruiker {
   /// Default `true` (ontbreekt het veld nog in Firestore, dan gewoon
   /// zichtbaar) - een beheerder ziet altijd iedereen, ongeacht dit veld.
   final bool zichtbaarInOverzicht;
+
+  /// Hex-kleur (bv. `"#E0704F"`) van het eigen bolletje in het
+  /// gezamenlijke overzicht (F9) - kiest elk gezinslid zelf, uit
+  /// `kleurenPalet` (`lib/util/kleuren_palet.dart`). `null` = nog niet
+  /// gekozen, dan geldt `kleurStandaardHex`.
+  final String? kleur;
 
   /// Welk PDF-formaat + welke naam-in-de-PDF bij dit account hoort. Staat
   /// er niet automatisch bij (`null` bij een nieuw aangemaakt profiel) -
@@ -91,6 +98,7 @@ class Gebruiker {
       webuntisKlasId: (data['webuntisKlasId'] as num?)?.toInt(),
       webuntisMinor: data['webuntisMinor'] as String?,
       zichtbaarInOverzicht: data['zichtbaarInOverzicht'] as bool? ?? true,
+      kleur: data['kleur'] as String?,
     );
   }
 }

@@ -760,35 +760,51 @@ te zetten en te controleren dat de beheerder haar nog steeds ziet).
 
 ---
 
-## F9 — Eigen kleur in het gezamenlijk overzicht (Ryans punt 3)
+## F9 — Eigen kleur in het gezamenlijk overzicht (Ryans punt 3) ✅ GEDAAN
 
 **Wens:** elk gezinslid kiest zelf een vaste kleur voor zijn/haar bolletje
 in het gezamenlijke overzicht (Amy altijd roze, Ryan altijd groen, ...).
 
 **Datamodel:** `gebruikers` krijgt `kleur: String?` (hex, bv. `"#E0704F"`),
-`null` = nog geen kleur gekozen → dan een neutrale standaardkleur tonen
-(bv. `AppKleuren.bosgroen`, de huidige hardcoded kleur).
+`null` = nog geen kleur gekozen → dan de neutrale `kleurStandaardHex`
+(grijs) tonen. `lib/models/gebruiker.dart`.
 
-**Wat te bouwen:**
+**Wat gebouwd is:**
 
-- **`beheer_overzicht_screen.dart` → `_DagKaart`**: het hardcoded
-  `AppKleuren.terracotta`-bolletje (regel ~327) wordt
-  `Color(int.parse((kleurHex ?? '#1F6F5C').substring(1), radix: 16) +
-  0xFF000000)` (of via de `kleurVanHex`-helper uit F9's palet-bestand) -
-  gebaseerd op de kleur van de **eigenaar** van die regel (elke regel toont
-  al `(naam, dienst)`, dus de bijhorende `Gebruiker.kleur` moet meegegeven
-  worden vanaf `_Overzicht`/`_dagKaarten`).
-- **Zelf instellen:** een klein "Mijn kleur"-knopje/icoon in de appbar van
-  `BeheerOverzichtScreen` (zichtbaar voor iedereen, niet enkel de
-  beheerder) dat de gedeelde `_KleurKiezer` (zie boven) in een
-  bottom-sheet opent en de keuze wegschrijft naar het **eigen** profiel
-  (`gebruikers/{eigen-uid}`) - dat mag al met de bestaande rules (iedereen
-  mag zijn eigen profiel bijwerken, zolang `rol` niet verandert).
-- Een kleine legende (naam + bolletje per zichtbaar gezinslid) bovenaan het
-  overzicht is een logische toevoeging zodat je weet welke kleur bij wie
-  hoort, zeker voor wie de kleuren nog niet uit het hoofd kent.
-- **Test:** widget-test dat de juiste kleur uit `Gebruiker.kleur` gebruikt
-  wordt, en dat `null` netjes terugvalt op de standaardkleur.
+- **Nieuw gedeeld bouwblok** `lib/util/kleuren_palet.dart`: `kleurenPalet`
+  (10 vaste `(naam, hex)`-paren) + `kleurVanHex(hex)` (valt terug op
+  `kleurStandaardHex` bij `null`/rommel). Bewust enkel hex-strings als bron
+  van waarheid (geen `Color`→hex-conversie nodig) om geen afhankelijkheid
+  te hebben van de exacte `Color`-API-vorm van deze Flutter-versie.
+- **Nieuwe gedeelde widget** `lib/widgets/kleur_kiezer.dart`:
+  `KleurKiezer` (grid van bolletjes, geselecteerde krijgt een vinkje) +
+  `toonKleurKiezer(context, titel: ...)` (opent het als bottom sheet, geeft
+  de gekozen hex terug) - **herbruikt in F10**, zoals gepland.
+- **`beheer_overzicht_screen.dart`**:
+  - `regels` draagt nu de volledige `Gebruiker` mee i.p.v. enkel de naam
+    (`(Gebruiker gebruiker, Dienst dienst)`), zodat `_regel` het bolletje
+    kan kleuren met `kleurVanHex(gebruiker.kleur)`.
+  - Nieuwe `_Legende`-widget bovenaan het overzicht: bolletje + naam per
+    zichtbaar gezinslid (F7), zodat je meteen weet welke kleur bij wie
+    hoort.
+  - "Mijn kleur"-knop in de appbar (een `CircleAvatar` in de eigen kleur,
+    **voor iedereen zichtbaar**, niet enkel de beheerder) opent
+    `toonKleurKiezer(...)` en slaat de keuze op via de nieuwe
+    `GebruikerService.zetKleur(uid, hex)` - toegestaan door de **bestaande**
+    rules (iedereen mag zijn eigen profiel bijwerken zolang `rol` niet
+    verandert), geen rules-wijziging nodig. De knop houdt de gekozen kleur
+    lokaal bij (`_eigenKleur`) zodat hij meteen bijwerkt, zonder op een
+    volledige herlaad te wachten.
+
+**Getest in de browser met beide testaccounts:** als beheerder een kleur
+gekozen (bevestigd na page-reload dat ze echt opgeslagen staat, en dat het
+gekozen bolletje een vinkje krijgt bij het heropenen), en als gewoon lid
+(`claude2@test.com`) zonder beheerderrechten óók succesvol een eigen kleur
+gezet - bevestigt dat de bestaande self-update-rule volstaat.
+
+- **Test:** `test/util/kleuren_palet_test.dart` (10 unieke kleuren,
+  `kleurVanHex` correct/fallback-gedrag), `test/models/gebruiker_test.dart`
+  uitgebreid met `kleur`-default (`null`) en expliciete waarde.
 
 ---
 

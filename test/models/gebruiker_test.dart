@@ -20,4 +20,19 @@ void main() {
     );
     expect(gebruiker.zichtbaarInOverzicht, isFalse);
   });
+
+  test('kleur is standaard null (F9) tot iemand er zelf een kiest', () {
+    const gebruiker = Gebruiker(uid: 'u1', naam: 'Amy', rol: GebruikerRol.lid);
+    expect(gebruiker.kleur, isNull);
+  });
+
+  test('kleur kan expliciet gezet worden', () {
+    const gebruiker = Gebruiker(
+      uid: 'u1',
+      naam: 'Amy',
+      rol: GebruikerRol.lid,
+      kleur: '#D8698B',
+    );
+    expect(gebruiker.kleur, '#D8698B');
+  });
 }

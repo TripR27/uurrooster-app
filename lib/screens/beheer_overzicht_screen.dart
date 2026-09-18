@@ -8,6 +8,8 @@ import '../services/dienst_service.dart';
 import '../services/gebruiker_service.dart';
 import '../theme.dart';
 import '../util/datum_util.dart';
+import '../util/kleuren_palet.dart';
+import '../widgets/kleur_kiezer.dart';
 import 'dienst_bewerken_screen.dart';
 import 'dienst_toevoegen_screen.dart';
 
@@ -33,11 +35,17 @@ class _BeheerOverzichtScreenState extends State<BeheerOverzichtScreen> {
   late Future<_Overzicht> _overzicht;
   bool _bezigMetPrinten = false;
 
+  // Los bijgehouden (i.p.v. steeds widget.profiel.kleur te lezen) zodat de
+  // appbar-knop meteen de nieuwe kleur toont na het kiezen, zonder op
+  // _herlaad() (en dus een nieuwe Firestore-rondrit) te moeten wachten.
+  late String? _eigenKleur;
+
   @override
   void initState() {
     super.initState();
     final vandaag = DateTime.now();
     _maandStart = DateTime(vandaag.year, vandaag.month);
+    _eigenKleur = widget.profiel.kleur;
     _overzicht = _laadOverzicht();
   }
 
@@ -147,6 +155,29 @@ class _BeheerOverzichtScreenState extends State<BeheerOverzichtScreen> {
     _herlaad();
   }
 
+  /// F9: eigen bolletjeskleur kiezen voor dit overzicht - iedereen mag dit
+  /// voor zichzelf, niet enkel de beheerder.
+  Future<void> _kiesEigenKleur() async {
+    final gekozen = await toonKleurKiezer(
+      context,
+      titel: 'Mijn kleur',
+      geselecteerdeHex: _eigenKleur,
+    );
+    if (gekozen == null || !mounted) return;
+
+    setState(() => _eigenKleur = gekozen);
+    try {
+      await GebruikerService.zetKleur(widget.profiel.uid, gekozen);
+      _herlaad();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Kon kleur niet opslaan: $e')));
+      setState(() => _eigenKleur = widget.profiel.kleur);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -154,7 +185,16 @@ class _BeheerOverzichtScreenState extends State<BeheerOverzichtScreen> {
         title: const Text('Gezamenlijk overzicht'),
         // Printen en "voor iemand anders toevoegen" (F3) zijn nooit voor
         // gewone leden gevraagd - enkel de beheerder ziet die knoppen (F8).
+        // "Mijn kleur" (F9) is wel voor iedereen.
         actions: [
+          IconButton(
+            icon: CircleAvatar(
+              radius: 11,
+              backgroundColor: kleurVanHex(_eigenKleur),
+            ),
+            tooltip: 'Mijn kleur',
+            onPressed: _kiesEigenKleur,
+          ),
           if (widget.profiel.isBeheerder)
             IconButton(
               icon: _bezigMetPrinten
@@ -241,17 +281,28 @@ class _BeheerOverzichtScreenState extends State<BeheerOverzichtScreen> {
                   }
 
                   final kaarten = _dagKaarten(overzicht);
-                  if (kaarten.isEmpty) {
-                    return const Center(
-                      child: Text('Niks gepland deze maand.'),
-                    );
-                  }
-
-                  return ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
-                    itemCount: kaarten.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 10),
-                    itemBuilder: (context, i) => kaarten[i],
+                  return Column(
+                    children: [
+                      _Legende(gebruikers: overzicht.gebruikers),
+                      Expanded(
+                        child: kaarten.isEmpty
+                            ? const Center(
+                                child: Text('Niks gepland deze maand.'),
+                              )
+                            : ListView.separated(
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  4,
+                                  16,
+                                  88,
+                                ),
+                                itemCount: kaarten.length,
+                                separatorBuilder: (_, _) =>
+                                    const SizedBox(height: 10),
+                                itemBuilder: (context, i) => kaarten[i],
+                              ),
+                      ),
+                    ],
                   );
                 },
               ),
@@ -271,12 +322,12 @@ class _BeheerOverzichtScreenState extends State<BeheerOverzichtScreen> {
     for (var dagNr = 1; dagNr <= _maandEinde.day; dagNr++) {
       final dag = DateTime(_maandStart.year, _maandStart.month, dagNr);
       final dagIso = naarIsoDatum(dag);
-      final regels = <(String naam, Dienst dienst)>[
+      final regels = <(Gebruiker gebruiker, Dienst dienst)>[
         for (final gebruiker in overzicht.gebruikers)
           for (final dienst in overzicht.diensten.where(
             (d) => d.gebruikerId == gebruiker.uid && d.valtOpDatum(dagIso),
           ))
-            (gebruiker.naam, dienst),
+            (gebruiker, dienst),
       ];
       if (regels.isEmpty) continue;
       kaarten.add(
@@ -306,7 +357,7 @@ class _DagKaart extends StatelessWidget {
   });
 
   final DateTime dag;
-  final List<(String naam, Dienst dienst)> regels;
+  final List<(Gebruiker gebruiker, Dienst dienst)> regels;
   final Gebruiker profiel;
   final ValueChanged<Dienst> onTik;
 
@@ -331,7 +382,7 @@ class _DagKaart extends StatelessWidget {
                 ),
               ),
             ),
-            for (final (naam, dienst) in regels) _regel(naam, dienst),
+            for (final (gebruiker, dienst) in regels) _regel(gebruiker, dienst),
           ],
         ),
       ),
@@ -341,8 +392,8 @@ class _DagKaart extends StatelessWidget {
   /// Eén regel ("Naam · tijd (omschrijving)"). Enkel tikbaar - en toont dan
   /// een chevron - als het je eigen dienst is of je beheerder bent (F8);
   /// voor een gewoon lid dat naar andermans regel kijkt is ze puur
-  /// informatief.
-  Widget _regel(String naam, Dienst dienst) {
+  /// informatief. Het bolletje toont de eigen kleur van [gebruiker] (F9).
+  Widget _regel(Gebruiker gebruiker, Dienst dienst) {
     final magBewerken =
         profiel.isBeheerder || dienst.gebruikerId == profiel.uid;
     return InkWell(
@@ -357,17 +408,54 @@ class _DagKaart extends StatelessWidget {
               margin: const EdgeInsets.only(top: 6),
               width: 8,
               height: 8,
-              decoration: const BoxDecoration(
-                color: AppKleuren.terracotta,
+              decoration: BoxDecoration(
+                color: kleurVanHex(gebruiker.kleur),
                 shape: BoxShape.circle,
               ),
             ),
             const SizedBox(width: 8),
-            Expanded(child: Text('$naam · ${dienst.naarTekst()}')),
+            Expanded(child: Text('${gebruiker.naam} · ${dienst.naarTekst()}')),
             if (magBewerken)
               const Icon(Icons.chevron_right, size: 18, color: Colors.black38),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Kleine legende bovenaan het overzicht: naam + bolletje per zichtbaar
+/// gezinslid (F9), zodat je meteen weet welke kleur bij wie hoort.
+class _Legende extends StatelessWidget {
+  const _Legende({required this.gebruikers});
+
+  final List<Gebruiker> gebruikers;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+      child: Wrap(
+        spacing: 14,
+        runSpacing: 6,
+        children: [
+          for (final gebruiker in gebruikers)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: kleurVanHex(gebruiker.kleur),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(gebruiker.naam, style: Theme.of(context).textTheme.bodySmall),
+              ],
+            ),
+        ],
       ),
     );
   }
