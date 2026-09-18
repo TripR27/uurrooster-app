@@ -6,6 +6,7 @@ import '../models/gebruiker.dart';
 import '../services/dienst_service.dart';
 import '../theme.dart';
 import '../widgets/dienst_tile.dart';
+import '../widgets/kleur_kiezer.dart';
 
 /// Scherm om het eigen PDF-rooster te uploaden: kiest het juiste
 /// RoosterParser-formaat automatisch op basis van het profiel (zie
@@ -25,6 +26,7 @@ class _PdfUploadScreenState extends State<PdfUploadScreen> {
   bool _bezig = false;
   String? _fout;
   List<Dienst>? _voorbeeld;
+  String? _kleur; // hex (F10), voor de hele batch
 
   Future<void> _kiesEnLeesPdf() async {
     final bestand = await FilePicker.pickFile(
@@ -42,6 +44,7 @@ class _PdfUploadScreenState extends State<PdfUploadScreen> {
       _bezig = true;
       _fout = null;
       _voorbeeld = null;
+      _kleur = null;
     });
 
     try {
@@ -148,6 +151,25 @@ class _PdfUploadScreenState extends State<PdfUploadScreen> {
                         '${_voorbeeld!.length} shiften gevonden:',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
+                      if (_voorbeeld!.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          'Kleur voor deze import (later nog per shift '
+                          'aan te passen):',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        const SizedBox(height: 8),
+                        KleurKiezer(
+                          geselecteerdeHex: _kleur,
+                          onGekozen: (hex) => setState(() {
+                            _kleur = hex;
+                            _voorbeeld = _voorbeeld!
+                                .map((d) => d.metKleur(hex))
+                                .toList();
+                          }),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                       Expanded(
                         child: ListView.builder(
                           itemCount: _voorbeeld!.length,

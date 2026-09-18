@@ -8,6 +8,7 @@ import '../school/schoolrooster_service.dart';
 import '../services/dienst_service.dart';
 import '../theme.dart';
 import '../widgets/dienst_tile.dart';
+import '../widgets/kleur_kiezer.dart';
 
 /// Scherm om Ryans schoolrooster op te halen uit WebUntis (F4). Kies een
 /// maand, "Ophalen" toont een voorbeeld van je schooldagen (vroegste begin
@@ -30,6 +31,7 @@ class _SchoolroosterScreenState extends State<SchoolroosterScreen> {
   bool _bezig = false;
   String? _fout;
   List<Dienst>? _voorbeeld;
+  String? _kleur; // hex (F10), voor de hele batch
 
   @override
   void initState() {
@@ -43,6 +45,7 @@ class _SchoolroosterScreenState extends State<SchoolroosterScreen> {
       _maand = DateTime(_maand.year, _maand.month + delta);
       _voorbeeld = null;
       _fout = null;
+      _kleur = null;
     });
   }
 
@@ -51,6 +54,7 @@ class _SchoolroosterScreenState extends State<SchoolroosterScreen> {
       _bezig = true;
       _fout = null;
       _voorbeeld = null;
+      _kleur = null;
     });
     try {
       final dagen = await SchoolroosterService.haalMaand(
@@ -196,6 +200,22 @@ class _SchoolroosterScreenState extends State<SchoolroosterScreen> {
                   : '${_voorbeeld!.length} schooldagen gevonden:',
               style: Theme.of(context).textTheme.titleMedium,
             ),
+            if (_voorbeeld!.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Kleur voor deze import (later nog per shift aan te '
+                'passen):',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 8),
+              KleurKiezer(
+                geselecteerdeHex: _kleur,
+                onGekozen: (hex) => setState(() {
+                  _kleur = hex;
+                  _voorbeeld = _voorbeeld!.map((d) => d.metKleur(hex)).toList();
+                }),
+              ),
+            ],
             Expanded(
               child: ListView.builder(
                 itemCount: _voorbeeld!.length,

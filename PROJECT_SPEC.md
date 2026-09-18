@@ -808,54 +808,67 @@ gezet - bevestigt dat de bestaande self-update-rule volstaat.
 
 ---
 
-## F10 — Eigen kleur per item in de persoonlijke agenda (Ryans punt 4)
+## F10 — Eigen kleur per item in de persoonlijke agenda (Ryans punt 4) ✅ GEDAAN
 
 **Wens:** los van de vaste "wie ben ik"-kleur uit F9, wil Ryan per item in
 zijn **eigen** agenda een eigen kleurtje kunnen kiezen (werk = blauw,
 privé = roze, een vakantie = groen, ...) - dus per `Dienst`, niet per
-gebruiker.
+gebruiker. Ook toepasbaar bij zowel PDF-import als het schoolrooster
+(WebUntis)-import, niet enkel bij handmatig toevoegen.
 
 **Datamodel:** `diensten` krijgt `kleur: String?` (hex), `null` = nog geen
-kleur gekozen (bv. bestaande diensten van vóór deze feature) → een
-neutrale grijstint tonen. Bewust **losstaand** van `gebruikers.kleur`
-(F9) - dat blijft enkel de "wie ben ik"-kleur in het gezamenlijke
-overzicht.
+kleur gekozen → de neutrale `kleurStandaardHex` tonen. Bewust **losstaand**
+van `gebruikers.kleur` (F9) - dat blijft enkel de "wie ben ik"-kleur in het
+gezamenlijke overzicht. `lib/models/dienst.dart`.
 
-**Wat te bouwen:**
+**Wat gebouwd is:**
 
-- **`lib/models/dienst.dart`**: `kleur` als nieuw optioneel veld,
-  `naarDocument()`/`vanDocument()` uitbreiden (zelfde patroon als
-  `eindDatum`/`heleDag` in F2 - geen migratie nodig).
-- **`lib/widgets/dienst_formulier.dart`**: de gedeelde `_KleurKiezer` (zie
-  boven) toevoegen onder "Omschrijving", `DienstConcept` krijgt een
-  `kleur`-veld erbij. Gebruikt door zowel Toevoegen als Bewerken.
-- **`lib/widgets/dienst_tile.dart`**: het leading-icoon (of een klein
-  gekleurd streepje/bolletje ernaast) kleuren volgens `dienst.kleur`.
-- **`shiften_screen.dart`**: de kalenderbolletjes (`markerDecoration`) van
-  `table_calendar` tonen nu een vaste `AppKleuren.terracotta`; bij
-  meerdere diensten op 1 dag met verschillende kleuren volstaat
-  `table_calendar`'s standaard "1 bolletje per event" (het pakket
-  ondersteunt een lijst van marker-kleuren via `calendarBuilders.markerBuilder`)
-  - dat is de enige plek die net iets meer maatwerk vraagt dan een simpele
-    kleur-swap.
+- **`Dienst.kleur`** + `naarDocument()`/`vanDocument()` uitgebreid (zelfde
+  patroon als `eindDatum`/`heleDag` in F2 - geen migratie nodig). Nieuwe
+  `Dienst.metKleur(hex)` (kopie met enkel de kleur gewijzigd) - gebruikt om
+  na een PDF-/schoolrooster-import een gekozen kleur op de hele
+  al-ingelezen batch toe te passen, vóór het opslaan.
+- **`dienst_formulier.dart`**: `KleurKiezer` (uit F9) toegevoegd onder
+  "Omschrijving", `DienstConcept.kleur` erbij - gebruikt door zowel
+  Toevoegen als Bewerken. `dienst_toevoegen_screen.dart`/
+  `dienst_bewerken_screen.dart` geven `concept.kleur` mee aan de
+  opgeslagen `Dienst`.
+- **`dienst_tile.dart`**: het leading-icoon (kalender/schooltas) krijgt nu
+  `kleurVanHex(dienst.kleur)` als kleur i.p.v. de standaard iconkleur -
+  bewust het bestaande icoon hergebruikt (bron blijft zo herkenbaar) i.p.v.
+  er een apart gekleurd streepje naast te zetten.
+- **`shiften_screen.dart`**: `calendarStyle.markerDecoration` (vaste
+  `AppKleuren.terracotta`) vervangen door
+  `calendarBuilders.markerBuilder<Dienst>` - één bolletje per dienst die
+  dag (tot 4, om overflow te vermijden bij een drukke dag), elk in de
+  eigen `kleurVanHex(dienst.kleur)`.
 - **PDF-/schoolrooster-import** (`pdf_upload_screen.dart`,
-  `schoolrooster_screen.dart`): vóór "Opslaan" een kleurkiezer tonen
-  ("Welke kleur voor deze import?") die **op de hele batch** wordt
-  toegepast (bv. alle geïmporteerde werkshiften worden blauw) - nadien is
-  elk item individueel aan te passen via Bewerken. Optioneel: een
-  onthouden "laatst gebruikte kleur per bron" (client-side, bv.
-  `SharedPreferences`) zodat je niet élke maand opnieuw moet kiezen - dit
-  is een nice-to-have, geen harde eis; enkel bouwen als het na F10 nog
-  simpel blijft, anders gewoon elke keer laten kiezen met een zinnig
-  voorstel (vorige keer gekozen kleur, indien bekend uit de bestaande
-  diensten van die maand).
-- **Print** (`overzicht_html.dart`/`overzicht_pdf.dart`): **niet**
-  aanpassen voor deze feature - dat is niet gevraagd (die print toont al
-  tekst, geen bolletjes) en blijft dus buiten scope, in lijn met "geen
-  features toevoegen die niet gevraagd zijn".
-- **Test:** `test/models/dienst_test.dart` uitbreiden met
-  `kleur`-serialisatie (net als `heleDag`/`eindDatum` nu al getest
-  worden).
+  `schoolrooster_screen.dart`): na het inlezen/ophalen, vóór "Opslaan",
+  een `KleurKiezer` ("Kleur voor deze import") die met
+  `Dienst.metKleur(hex)` **op de hele batch tegelijk** wordt toegepast (de
+  voorbeeldlijst update meteen mee) - nadien is elk item nog individueel
+  aan te passen via Bewerken. Het "laatst gebruikte kleur"-idee uit het
+  oorspronkelijke plan is **niet** gebouwd (bleef een nice-to-have, geen
+  harde eis, en de eenvoudige versie volstaat).
+- **Print**: bewust **niet** aangepast - niet gevraagd, buiten scope.
+
+**Getest in de browser** (`claude2@test.com`, gewoon lid): via "Toevoegen"
+een item met een kleur aangemaakt - de kleurkiezer in het formulier werkt,
+het bolletje in de kalender én het icoon in de lijst tonen meteen de
+gekozen kleur, en bij het heropenen om te bewerken staat de juiste kleur
+aangevinkt. Nadien opgeruimd (verwijderd).
+
+⚠️ **Niet end-to-end getest: de kleurkiezer bij een échte PDF-/
+schoolrooster-import.** De browser-tool die Claude gebruikt kan het
+native bestandskiezer-dialoogvenster van `file_picker` niet bedienen (dat
+valt buiten de webpagina zelf), dus een PDF kiezen en uploaden lukt niet
+vanuit deze tool. De onderliggende code is identiek aan wat wél getest is
+(dezelfde `KleurKiezer`/`metKleur`), maar Ryan test dit best zelf één keer
+- bv. bij de volgende echte PDF-import of schoolrooster-ophaling - om te
+bevestigen dat de kleurkiezer daar ook verschijnt en werkt zoals verwacht.
+
+- **Test:** `test/models/dienst_test.dart` uitgebreid met `kleur`-
+  serialisatie + `metKleur` (nieuwe kopie, origineel blijft ongewijzigd).
 
 ---
 

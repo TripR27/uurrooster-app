@@ -65,6 +65,7 @@ class _DienstToevoegenScreenState extends State<DienstToevoegenScreen> {
           omschrijving: concept.omschrijving,
           bron: DienstBron.handmatig,
           aangemaaktOp: DateTime.now(),
+          kleur: concept.kleur,
         ),
       );
       if (mounted) Navigator.of(context).pop();

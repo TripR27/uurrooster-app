@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/dienst.dart';
 import '../util/datum_util.dart';
+import '../util/kleuren_palet.dart';
 
 /// Eén rij voor een [Dienst] in een lijst - gedeeld tussen het
 /// PDF-uploadscherm (voorbeeld tonen) en het overzichtscherm (eigen
@@ -23,10 +24,14 @@ class DienstTile extends StatelessWidget {
     return ListTile(
       dense: true,
       onTap: onTap,
+      // De kleur (F10) van dit item zit in het icoon - zo blijft het
+      // onderscheid met schoolrooster-items (ander icoon) behouden, en
+      // krijgt de rij toch meteen de eigen kleur mee.
       leading: Icon(
         dienst.bron == DienstBron.schoolrooster
             ? Icons.school_outlined
             : Icons.calendar_today,
+        color: kleurVanHex(dienst.kleur),
       ),
       title: Text(titel),
       subtitle: Text(dienst.naarTekst()),

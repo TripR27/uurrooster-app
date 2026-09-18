@@ -51,6 +51,7 @@ class _DienstBewerkenScreenState extends State<DienstBewerkenScreen> {
           omschrijving: concept.omschrijving,
           bron: widget.dienst.bron,
           aangemaaktOp: widget.dienst.aangemaaktOp,
+          kleur: concept.kleur,
         ),
       );
       if (mounted) Navigator.of(context).pop();

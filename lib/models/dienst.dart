@@ -57,6 +57,7 @@ class Dienst {
     this.omschrijving = '',
     required this.bron,
     required this.aangemaaktOp,
+    this.kleur,
   });
 
   /// Null zolang de dienst nog niet weggeschreven is naar Firestore (het
@@ -91,6 +92,12 @@ class Dienst {
   final DienstBron bron;
   final DateTime aangemaaktOp;
 
+  /// Eigen hex-kleur (F10) van dit item in de persoonlijke agenda - los van
+  /// de "wie ben ik"-kleur uit F9 (`Gebruiker.kleur`). `null` = nog geen
+  /// kleur gekozen, dan geldt `kleurStandaardHex`
+  /// (`lib/util/kleuren_palet.dart`).
+  final String? kleur;
+
   factory Dienst.vanDocument(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
     return Dienst(
@@ -105,6 +112,7 @@ class Dienst {
       omschrijving: data['omschrijving'] as String? ?? '',
       bron: DienstBronWaarde.vanWaarde(data['bron'] as String),
       aangemaaktOp: (data['aangemaaktOp'] as Timestamp).toDate(),
+      kleur: data['kleur'] as String?,
     );
   }
 
@@ -148,5 +156,24 @@ class Dienst {
     'omschrijving': omschrijving,
     'bron': bron.waarde,
     'aangemaaktOp': Timestamp.fromDate(aangemaaktOp),
+    'kleur': kleur,
   };
+
+  /// Kopie van deze dienst met een andere kleur (F10) - gebruikt om na een
+  /// PDF-/schoolrooster-import een gekozen kleur op de hele batch toe te
+  /// passen, vóór het opslaan (elk item blijft nadien apart aanpasbaar).
+  Dienst metKleur(String? nieuweKleur) => Dienst(
+    id: id,
+    gebruikerId: gebruikerId,
+    gebruikerNaam: gebruikerNaam,
+    datum: datum,
+    eindDatum: eindDatum,
+    startTijd: startTijd,
+    eindTijd: eindTijd,
+    heleDag: heleDag,
+    omschrijving: omschrijving,
+    bron: bron,
+    aangemaaktOp: aangemaaktOp,
+    kleur: nieuweKleur,
+  );
 }

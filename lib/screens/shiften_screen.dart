@@ -6,6 +6,7 @@ import '../models/gebruiker.dart';
 import '../services/dienst_service.dart';
 import '../theme.dart';
 import '../util/datum_util.dart';
+import '../util/kleuren_palet.dart';
 import '../widgets/dienst_tile.dart';
 import 'dienst_bewerken_screen.dart';
 import 'dienst_toevoegen_screen.dart';
@@ -143,12 +144,34 @@ class _ShiftenScreenState extends State<ShiftenScreen> {
                       color: AppKleuren.bosgroen,
                       shape: BoxShape.circle,
                     ),
-                    markerDecoration: const BoxDecoration(
-                      color: AppKleuren.terracotta,
-                      shape: BoxShape.circle,
-                    ),
                     weekendTextStyle: const TextStyle(color: AppKleuren.inkt),
                     outsideDaysVisible: false,
+                  ),
+                  // Eigen bolletjes i.p.v. het standaard, vaste
+                  // markerDecoration-kleurtje: elk item kan een eigen kleur
+                  // hebben (F10), dus op een dag met meerdere items in
+                  // verschillende kleuren tonen we ze allemaal naast elkaar.
+                  calendarBuilders: CalendarBuilders<Dienst>(
+                    markerBuilder: (context, dag, diensten) {
+                      if (diensten.isEmpty) return null;
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (final dienst in diensten.take(4))
+                            Container(
+                              width: 6,
+                              height: 6,
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 1,
+                              ),
+                              decoration: BoxDecoration(
+                                color: kleurVanHex(dienst.kleur),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                        ],
+                      );
+                    },
                   ),
                 ),
                 const Divider(height: 1),

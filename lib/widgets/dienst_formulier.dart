@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../models/dienst.dart';
 import '../theme.dart';
 import '../util/datum_util.dart';
+import 'kleur_kiezer.dart';
 
 /// De verzameling waarden die [DienstFormulier] oplevert via
 /// [DienstFormulierState.lees].
@@ -15,6 +16,7 @@ class DienstConcept {
     required this.eindTijd,
     required this.heleDag,
     required this.omschrijving,
+    required this.kleur,
   });
 
   final String datum; // ISO
@@ -23,6 +25,7 @@ class DienstConcept {
   final String? eindTijd; // "HH:MM", null bij heleDag of "alleen startuur"
   final bool heleDag;
   final String omschrijving;
+  final String? kleur; // hex (F10), null = nog geen kleur gekozen
 }
 
 /// Gedeeld formulier voor "iets toevoegen" en "iets bewerken": één dag of
@@ -66,6 +69,7 @@ class DienstFormulierState extends State<DienstFormulier> {
   TimeOfDay? _eindTijd; // null = "alleen een startuur"
   late bool _heleDag;
   late final TextEditingController _omschrijving;
+  String? _kleur; // hex (F10)
 
   static final _langeDatum = DateFormat('EEEE d MMMM yyyy', 'nl_BE');
   static final _korteDatum = DateFormat('d MMM', 'nl_BE');
@@ -95,6 +99,7 @@ class DienstFormulierState extends State<DienstFormulier> {
     }
 
     _omschrijving = TextEditingController(text: b?.omschrijving ?? '');
+    _kleur = b?.kleur;
   }
 
   @override
@@ -127,6 +132,7 @@ class DienstFormulierState extends State<DienstFormulier> {
           : _tijdString(_eindTijd!),
       heleDag: _heleDag,
       omschrijving: _omschrijving.text.trim(),
+      kleur: _kleur,
     );
   }
 
@@ -334,6 +340,16 @@ class DienstFormulierState extends State<DienstFormulier> {
           decoration: const InputDecoration(
             hintText: 'bv. Werk, Tandarts, Vakantie, ...',
           ),
+        ),
+
+        const SizedBox(height: 20),
+        _Label('Kleur'),
+        const SizedBox(height: 8),
+        KleurKiezer(
+          geselecteerdeHex: _kleur,
+          onGekozen: (hex) {
+            if (widget.enabled) setState(() => _kleur = hex);
+          },
         ),
       ],
     );

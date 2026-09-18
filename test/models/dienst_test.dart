@@ -8,6 +8,7 @@ Dienst _dienst({
   String? eindTijd = '17:00',
   bool heleDag = false,
   String omschrijving = '',
+  String? kleur,
 }) {
   return Dienst(
     gebruikerId: 'u1',
@@ -20,6 +21,7 @@ Dienst _dienst({
     omschrijving: omschrijving,
     bron: DienstBron.handmatig,
     aangemaaktOp: DateTime(2026, 9, 1),
+    kleur: kleur,
   );
 }
 
@@ -87,6 +89,25 @@ void main() {
       expect(map['startTijd'], isNull);
       expect(map['eindTijd'], isNull);
       expect(map['heleDag'], isTrue);
+    });
+
+    test('kleur (F10) is standaard null en overleeft naarDocument', () {
+      expect(_dienst().naarDocument()['kleur'], isNull);
+      expect(_dienst(kleur: '#3B6EA5').naarDocument()['kleur'], '#3B6EA5');
+    });
+  });
+
+  group('Dienst.metKleur (F10)', () {
+    test('geeft een kopie met enkel de kleur gewijzigd', () {
+      final origineel = _dienst(omschrijving: 'Werk');
+      final gekleurd = origineel.metKleur('#D8698B');
+
+      expect(gekleurd.kleur, '#D8698B');
+      expect(gekleurd.omschrijving, origineel.omschrijving);
+      expect(gekleurd.datum, origineel.datum);
+      expect(gekleurd.gebruikerId, origineel.gebruikerId);
+      // Het origineel blijft ongewijzigd.
+      expect(origineel.kleur, isNull);
     });
   });
 }
