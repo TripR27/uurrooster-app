@@ -11,12 +11,13 @@ import '../util/datum_util.dart';
 import 'dienst_bewerken_screen.dart';
 import 'dienst_toevoegen_screen.dart';
 
-/// Gezamenlijk overzicht van alle gezinsleden, enkel voor de beheerder (zie
-/// PROJECT_SPEC.md §2 en §5) - een lijst dag-kaarten (1 regel per gezinslid)
-/// voor de gekozen maand, met een knop om dat rechtstreeks af te drukken
-/// (§7). De beheerder kan hier ook shiften van iedereen toevoegen,
-/// corrigeren of verwijderen (F3): tik een regel aan, of gebruik de
-/// "Toevoegen"-knop.
+/// Gezamenlijk overzicht van alle (zichtbare) gezinsleden, open voor
+/// iedereen (F8, zie PROJECT_SPEC.md §2/§5) - een lijst dag-kaarten (1
+/// regel per gezinslid) voor de gekozen maand. Een gewoon lid ziet enkel
+/// zichzelf + de gezinsleden die de beheerder zichtbaar heeft gezet (F7) en
+/// kan enkel zijn/haar eigen regels aantikken om te bewerken; printen en
+/// "voor iemand anders toevoegen" (F3) blijven enkel voor de beheerder, die
+/// bovendien altijd iedereen ziet (ongeacht F7) en elke regel mag bewerken.
 class BeheerOverzichtScreen extends StatefulWidget {
   const BeheerOverzichtScreen({super.key, required this.profiel});
 
@@ -46,7 +47,11 @@ class _BeheerOverzichtScreenState extends State<BeheerOverzichtScreen> {
       DateTime(_maandStart.year, _maandStart.month + 1, 0);
 
   Future<_Overzicht> _laadOverzicht() async {
-    final gebruikers = await GebruikerService.alleGebruikers();
+    // De beheerder ziet iedereen (F3/F5); een gewoon lid enkel zichzelf +
+    // wie de beheerder zichtbaar heeft gezet (F7/F8).
+    final gebruikers = widget.profiel.isBeheerder
+        ? await GebruikerService.alleGebruikers()
+        : await GebruikerService.zichtbareGebruikers(widget.profiel.uid);
     final diensten = await DienstService.voorPeriode(
       gebruikerIds: gebruikers.map((g) => g.uid).toList(),
       vanIso: naarIsoDatum(_maandStart),
@@ -147,32 +152,37 @@ class _BeheerOverzichtScreenState extends State<BeheerOverzichtScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Gezamenlijk overzicht'),
+        // Printen en "voor iemand anders toevoegen" (F3) zijn nooit voor
+        // gewone leden gevraagd - enkel de beheerder ziet die knoppen (F8).
         actions: [
-          IconButton(
-            icon: _bezigMetPrinten
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.print_outlined),
-            tooltip: 'Printen',
-            onPressed: _bezigMetPrinten ? null : _printen,
-          ),
+          if (widget.profiel.isBeheerder)
+            IconButton(
+              icon: _bezigMetPrinten
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.print_outlined),
+              tooltip: 'Printen',
+              onPressed: _bezigMetPrinten ? null : _printen,
+            ),
         ],
       ),
-      floatingActionButton: FutureBuilder<_Overzicht>(
-        future: _overzicht,
-        builder: (context, snapshot) {
-          final leden = snapshot.data?.gebruikers ?? const <Gebruiker>[];
-          if (leden.isEmpty) return const SizedBox.shrink();
-          return FloatingActionButton.extended(
-            onPressed: () => _toevoegen(leden),
-            icon: const Icon(Icons.add),
-            label: const Text('Toevoegen'),
-          );
-        },
-      ),
+      floatingActionButton: !widget.profiel.isBeheerder
+          ? null
+          : FutureBuilder<_Overzicht>(
+              future: _overzicht,
+              builder: (context, snapshot) {
+                final leden = snapshot.data?.gebruikers ?? const <Gebruiker>[];
+                if (leden.isEmpty) return const SizedBox.shrink();
+                return FloatingActionButton.extended(
+                  onPressed: () => _toevoegen(leden),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Toevoegen'),
+                );
+              },
+            ),
       // SafeArea: zonder dit overlapt de gebaren-navigatiebalk op sommige
       // Android-toestellen de onderkant van de lijst.
       body: SafeArea(
@@ -269,7 +279,14 @@ class _BeheerOverzichtScreenState extends State<BeheerOverzichtScreen> {
             (gebruiker.naam, dienst),
       ];
       if (regels.isEmpty) continue;
-      kaarten.add(_DagKaart(dag: dag, regels: regels, onTik: _bewerk));
+      kaarten.add(
+        _DagKaart(
+          dag: dag,
+          regels: regels,
+          profiel: widget.profiel,
+          onTik: _bewerk,
+        ),
+      );
     }
     return kaarten;
   }
@@ -277,16 +294,20 @@ class _BeheerOverzichtScreenState extends State<BeheerOverzichtScreen> {
 
 /// Eén dag uit het gezamenlijke overzicht: dag-label + 1 regel per
 /// gezinslid met iets die dag ("Naam · tijd (omschrijving)"). Tik een regel
-/// aan om ze te bewerken (F3).
+/// aan om ze te bewerken (F3) - dat kan enkel voor je eigen shiften, of
+/// voor eender wie als je beheerder bent (F8); voor een gewoon lid is
+/// andermans regel puur informatief.
 class _DagKaart extends StatelessWidget {
   const _DagKaart({
     required this.dag,
     required this.regels,
+    required this.profiel,
     required this.onTik,
   });
 
   final DateTime dag;
   final List<(String naam, Dienst dienst)> regels;
+  final Gebruiker profiel;
   final ValueChanged<Dienst> onTik;
 
   @override
@@ -310,35 +331,41 @@ class _DagKaart extends StatelessWidget {
                 ),
               ),
             ),
-            for (final (naam, dienst) in regels)
-              InkWell(
-                borderRadius: BorderRadius.circular(8),
-                onTap: () => onTik(dienst),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        margin: const EdgeInsets.only(top: 6),
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: AppKleuren.terracotta,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text('$naam · ${dienst.naarTekst()}')),
-                      const Icon(
-                        Icons.chevron_right,
-                        size: 18,
-                        color: Colors.black38,
-                      ),
-                    ],
-                  ),
-                ),
+            for (final (naam, dienst) in regels) _regel(naam, dienst),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Eén regel ("Naam · tijd (omschrijving)"). Enkel tikbaar - en toont dan
+  /// een chevron - als het je eigen dienst is of je beheerder bent (F8);
+  /// voor een gewoon lid dat naar andermans regel kijkt is ze puur
+  /// informatief.
+  Widget _regel(String naam, Dienst dienst) {
+    final magBewerken =
+        profiel.isBeheerder || dienst.gebruikerId == profiel.uid;
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: magBewerken ? () => onTik(dienst) : null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 6),
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
+                color: AppKleuren.terracotta,
+                shape: BoxShape.circle,
               ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(child: Text('$naam · ${dienst.naarTekst()}')),
+            if (magBewerken)
+              const Icon(Icons.chevron_right, size: 18, color: Colors.black38),
           ],
         ),
       ),

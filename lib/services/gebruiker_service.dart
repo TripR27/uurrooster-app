@@ -20,12 +20,38 @@ class GebruikerService {
     'gebruikers',
   );
 
-  /// Alle profielen, voor het gezamenlijke overzicht (enkel de beheerder mag
-  /// dit aanroepen - zie firestore.rules, `isBeheerder()` staat lezen van
-  /// alle `gebruikers`-documenten toe voor dat account).
+  /// Alle profielen - enkel voor de beheerder (die ziet sowieso iedereen,
+  /// zie firestore.rules `isBeheerder()`) of voor schermen die zelf al
+  /// enkel voor de beheerder bereikbaar zijn (bv. het beheer-tab, F7).
+  /// Een gewoon lid gebruikt [zichtbareGebruikers] voor het gezamenlijke
+  /// overzicht (F8).
   static Future<List<Gebruiker>> alleGebruikers() async {
     final snap = await _gebruikers.get();
     return snap.docs.map(Gebruiker.vanDocument).toList();
+  }
+
+  /// Jezelf + elk gezinslid dat zichtbaar staat (F7) - voor het
+  /// gezamenlijke overzicht van een gewoon lid (F8).
+  ///
+  /// Kan niet gewoon [alleGebruikers] gebruiken: Firestore staat een
+  /// ongefilterde lijst-query niet toe als de rule daarvoor per document
+  /// afhankelijk is van dat document zijn eigen data
+  /// (`zichtbaarInOverzicht`) - Firestore moet vooraf kunnen garanderen dat
+  /// élk mogelijk resultaat aan de rule voldoet, en dat kan enkel als de
+  /// query zelf al op datzelfde veld filtert. Vandaar de expliciete
+  /// `where` hier, die exact overeenkomt met de leesrule in
+  /// firestore.rules.
+  static Future<List<Gebruiker>> zichtbareGebruikers(String eigenUid) async {
+    final snap = await _gebruikers
+        .where('zichtbaarInOverzicht', isEqualTo: true)
+        .get();
+    final lijst = snap.docs.map(Gebruiker.vanDocument).toList();
+
+    if (lijst.every((g) => g.uid != eigenUid)) {
+      final eigenProfiel = await _gebruikers.doc(eigenUid).get();
+      if (eigenProfiel.exists) lijst.add(Gebruiker.vanDocument(eigenProfiel));
+    }
+    return lijst;
   }
 
   /// Zet of dit account zichtbaar is in het gezamenlijke overzicht voor
@@ -42,7 +68,15 @@ class GebruikerService {
     }
 
     final naam = _standaardNaam(account.email);
-    await _gebruikers.doc(account.uid).set({'naam': naam, 'rol': 'lid'});
+    // zichtbaarInOverzicht altijd expliciet meegeven (i.p.v. te vertrouwen
+    // op de Dart-side default `true`) - anders kan [zichtbareGebruikers]
+    // dit profiel straks niet vinden, want die query filtert letterlijk op
+    // `zichtbaarInOverzicht == true` (zie firestore.rules).
+    await _gebruikers.doc(account.uid).set({
+      'naam': naam,
+      'rol': 'lid',
+      'zichtbaarInOverzicht': true,
+    });
     return Gebruiker(uid: account.uid, naam: naam, rol: GebruikerRol.lid);
   }
 

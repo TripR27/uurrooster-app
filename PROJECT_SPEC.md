@@ -673,72 +673,78 @@ publiceert werkt het voor iedereen.
 
 ---
 
-## F8 — Gezamenlijk overzicht zichtbaar voor iedereen (Ryans punt 1)
+## F8 — Gezamenlijk overzicht zichtbaar voor iedereen (Ryans punt 1) ✅ GEDAAN
 
 **Wens:** iedereen (niet enkel de beheerder) kan het gezamenlijke rooster
 bekijken. Enkel de beheerder mag daarin dingen van **anderen** aanpassen -
 een lid past, zoals nu al, enkel zijn/haar eigen shiften aan (via "Mijn
-shiften"), en ziet enkel zichzelf + de gezinsleden die de beheerder
-zichtbaar heeft gezet (F7).
+shiften" of door zijn/haar eigen regel in dit overzicht aan te tikken), en
+ziet enkel zichzelf + de gezinsleden die de beheerder zichtbaar heeft gezet
+(F7).
 
-**Wat te bouwen:**
+**Wat gebouwd is:**
 
-- **`home_screen.dart`**: de menukaart "Gezamenlijk overzicht" verliest de
-  `if (profiel.isBeheerder)`-voorwaarde - iedereen ziet en opent hem.
+- **`home_screen.dart`**: de menukaart "Gezamenlijk overzicht" staat nu
+  altijd op het startscherm (niet langer enkel `if (profiel.isBeheerder)`).
 - **`beheer_overzicht_screen.dart`** (bestandsnaam/klasnaam bewust
-  ongewijzigd gelaten - een hernoeming is pure cosmetiek en hoort niet bij
-  deze feature):
-  - `_laadOverzicht()`: `GebruikerService.alleGebruikers()` blijft
-    ongewijzigd aangeroepen, maar dankzij de aangepaste rules (zie
-    hieronder) krijgt een gewoon lid daar automatisch enkel zichzelf +
-    zichtbare gezinsleden van terug - geen extra filter-code nodig in de
-    Dart-laag.
-  - Tikken op een regel (`_bewerk`): enkel doorlaten naar
-    `DienstBewerkenScreen` als `dienst.gebruikerId == widget.profiel.uid ||
-    widget.profiel.isBeheerder` - anders niets doen (rij is dan puur
-    informatief voor een gewoon lid dat naar andermans shift kijkt).
-  - FAB "Toevoegen" (voor een gezinslid kiezen, F3) en de print-knop
-    blijven **enkel voor de beheerder** zichtbaar (`if
-    (widget.profiel.isBeheerder)`) - dat is nooit gevraagd voor gewone
-    leden en blijft dus buiten scope.
-- **Firestore rules (`diensten`)** - het lezen moet uitgebreid worden van
-  "enkel jezelf of de beheerder" naar "jezelf, de beheerder, of eender wie
-  van wie het profiel zichtbaar is":
+  ongewijzigd gelaten - een hernoeming is pure cosmetiek):
+  - `_DagKaart`/`_regel` krijgt `profiel` mee en toont een chevron + laat
+    enkel tikken toe als `profiel.isBeheerder || dienst.gebruikerId ==
+    profiel.uid` - voor een gewoon lid is andermans regel puur
+    informatief.
+  - FAB "Toevoegen" en de print-knop staan enkel nog `if
+    (widget.profiel.isBeheerder)` in de `AppBar`/`Scaffold` - dat is nooit
+    voor gewone leden gevraagd en blijft dus buiten scope.
+- **Firestore rules** (`eigenaarZichtbaar(gebruikerId)`-helper +
+  aangepaste `read`-rules op zowel `gebruikers` als `diensten`) - zie de
+  huidige `firestore.rules` in git, **al gepubliceerd door Ryan**.
 
-```
-function eigenaarZichtbaar(gebruikerId) {
-  return get(/databases/$(database)/documents/gebruikers/$(gebruikerId))
-    .data.get('zichtbaarInOverzicht', true) == true;
-}
+**Bug gevonden en opgelost tijdens het testen (belangrijk voor later
+werk met Firestore-lijst-queries):** `GebruikerService.alleGebruikers()`
+doet een **ongefilterde** `.get()` op de hele `gebruikers`-collectie.
+Firestore staat zo'n ongefilterde lijst-query enkel toe als de rule kan
+**garanderen dat élk mogelijk document** in die collectie aan de rule
+voldoet - en dat kan niet zodra de rule per document afhangt van dat
+document zijn eigen, wisselende data (`zichtbaarInOverzicht`). Voor een
+gewoon lid faalde die aanroep dus met een keiharde
+`permission-denied` op de **hele** lijst, niet enkel op de onzichtbare
+documenten.
 
-allow read: if isSignedIn() &&
-  (resource.data.gebruikerId == request.auth.uid ||
-   isBeheerder() ||
-   eigenaarZichtbaar(resource.data.gebruikerId));
-```
+**Fix:**
+- Nieuwe `GebruikerService.zichtbareGebruikers(eigenUid)` (enkel voor
+  gewone leden) doet een **wél gefilterde** query
+  (`.where('zichtbaarInOverzicht', isEqualTo: true)`) - die matcht exact
+  de leesrule, dus Firestore kan de query wél garanderen. Voegt daarna
+  het eigen profiel toe als dat er nog niet in zat (bv. je bent zelf
+  onzichtbaar gezet, maar mag jezelf natuurlijk wel zien).
+  `beheer_overzicht_screen.dart` roept afhankelijk van de rol
+  `alleGebruikers()` (beheerder) of `zichtbareGebruikers(uid)` (lid) aan.
+- `GebruikerService.haalOfMaakProfiel` schrijft `zichtbaarInOverzicht:
+  true` nu altijd **expliciet** mee bij het aanmaken van een nieuw
+  profiel (i.p.v. te vertrouwen op de Dart-side default `true`) - anders
+  zou zo'n nieuw account nooit matchen met de `isEqualTo: true`-query
+  hierboven.
+- **Bestaande profielen van vóór deze feature** (Ryan, mama) hadden het
+  veld nog niet, en moesten dus éénmalig "geraakt" worden om het expliciet
+  weg te schrijven - opgelost door Ryan zelf hun schakelaar in het
+  Beheer-tab één keer om te zetten. Nieuwe accounts hebben dit euvel niet
+  meer dankzij de fix hierboven.
+- `DienstService.voorPeriode` had deze fix **niet** nodig: die doet al één
+  losse, wél-gefilterde query per `gebruikerId`
+  (`where('gebruikerId', isEqualTo: id)`), en zo'n query mét filter is
+  voor Firestore altijd te garanderen - dat patroon bestond al sinds F3.
 
-- **Firestore rules (`gebruikers`)** - lezen moet ook open voor iedereen
-  zolang het gaat om een zichtbaar profiel (nodig om namen/kleuren (F9) in
-  het gezamenlijke overzicht te tonen; een onzichtbaar profiel blijft
-  volledig verborgen voor niet-beheerders, dus ook zijn naam duikt nergens
-  op):
+**Getest (browser, met het testaccount tijdelijk op `rol: "lid"` gezet):**
+gezamenlijk overzicht opent zonder print-knop/FAB, Amy (onzichtbaar
+gezet) verschijnt nergens, andermans regels (Mama) tonen geen chevron en
+zijn niet tikbaar. Als beheerder blijft alles gewoon werken, ook voor een
+persoon die op onzichtbaar staat (bevestigd door Amy tijdelijk onzichtbaar
+te zetten en te controleren dat de beheerder haar nog steeds ziet).
 
-```
-allow read: if eigenGebruiker(uid) || isBeheerder() ||
-  (isSignedIn() && resource.data.get('zichtbaarInOverzicht', true) == true);
-```
-
-  Firestore past deze rule per document toe, ook bij
-  `GebruikerService.alleGebruikers()` se ongefilterde `.get()` op de hele
-  collectie - een gewoon lid krijgt dus automatisch enkel de toegestane
-  documenten terug, geen "permission-denied" op de hele lijst.
-- **Client-side data ophalen blijft ongewijzigd** (`DienstService.voorPeriode`
-  doet nu al 1 losse `where('gebruikerId', ...)`-query per gebruiker - dat
-  patroon blijft identiek, enkel wie de aanroep doet verandert).
-- **Test:** met de Firebase-emulator (of gewoon handmatig met het
-  testaccount + een 2e testaccount) controleren dat een lid het
-  overzicht ziet, een onzichtbaar gezinslid er niet in verschijnt, en een
-  tik op andermans rij niets doet.
+- **Test:** geen aparte unit-test voor de rules zelf (geen
+  Firebase-emulator opgezet in dit project) - functioneel geverifieerd in
+  de browser zoals hierboven beschreven, met de rol van het testaccount
+  tijdelijk omgezet door Ryan.
 
 ---
 

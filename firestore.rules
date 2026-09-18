@@ -23,10 +23,15 @@ service cloud.firestore {
     }
 
     match /gebruikers/{uid} {
-      // Iedereen leest zijn eigen profiel (nodig om naam/rol te kennen);
-      // de beheerder mag daarnaast ook alle andere profielen lezen voor het
-      // gezamenlijke overzicht.
-      allow read: if eigenGebruiker(uid) || isBeheerder();
+      // Iedereen leest zijn eigen profiel (nodig om naam/rol te kennen); de
+      // beheerder leest daarnaast altijd alle andere profielen. Een gewoon
+      // lid leest ook een ander profiel, maar enkel als dat account
+      // zichtbaar staat (F7/F8, zie PROJECT_SPEC.md) - een onzichtbaar
+      // profiel (naam incluis) blijft dan volledig verborgen. Ontbreekt het
+      // veld nog (oudere profielen), dan geldt de standaardwaarde `true`.
+      allow read: if eigenGebruiker(uid) || isBeheerder() ||
+        (isSignedIn() &&
+         resource.data.get('zichtbaarInOverzicht', true) == true);
 
       // Een account mag zijn eigen profiel aanmaken bij de eerste keer
       // inloggen, maar altijd met rol 'lid' - zo kan niemand zichzelf
@@ -46,11 +51,21 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Of het profiel van [gebruikerId] zichtbaar staat voor gewone leden
+    // (F7/F8) - default `true` als het veld nog ontbreekt.
+    function eigenaarZichtbaar(gebruikerId) {
+      return get(/databases/$(database)/documents/gebruikers/$(gebruikerId))
+        .data.get('zichtbaarInOverzicht', true) == true;
+    }
+
     match /diensten/{dienstId} {
-      // Een lid leest enkel zijn eigen diensten; de beheerder leest alles
-      // (nodig voor het gezamenlijke overzicht + printen).
+      // Een lid leest altijd zijn eigen diensten, en daarnaast die van elk
+      // zichtbaar gezinslid (F8, voor het gezamenlijke overzicht); de
+      // beheerder leest sowieso alles (nodig voor printen + F3).
       allow read: if isSignedIn() &&
-        (resource.data.gebruikerId == request.auth.uid || isBeheerder());
+        (resource.data.gebruikerId == request.auth.uid ||
+         isBeheerder() ||
+         eigenaarZichtbaar(resource.data.gebruikerId));
 
       // Voor jezelf mag je altijd diensten aanmaken/wijzigen/verwijderen.
       // De beheerder mag dat daarnaast ook voor iedereen (F3, zie

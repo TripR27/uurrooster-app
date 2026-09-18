@@ -120,22 +120,21 @@ class _StartMenu extends StatelessWidget {
                   );
                 },
               ),
+              const SizedBox(height: 16),
+              _MenuKaart(
+                icoon: Icons.groups,
+                titel: 'Gezamenlijk overzicht',
+                omschrijving: 'Rooster van iedereen samen bekijken',
+                kleur: AppKleuren.inkt,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => BeheerOverzichtScreen(profiel: profiel),
+                    ),
+                  );
+                },
+              ),
               if (profiel.isBeheerder) ...[
-                const SizedBox(height: 16),
-                _MenuKaart(
-                  icoon: Icons.groups,
-                  titel: 'Gezamenlijk overzicht',
-                  omschrijving: 'Rooster van iedereen samen bekijken',
-                  kleur: AppKleuren.inkt,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            BeheerOverzichtScreen(profiel: profiel),
-                      ),
-                    );
-                  },
-                ),
                 const SizedBox(height: 16),
                 _MenuKaart(
                   icoon: Icons.admin_panel_settings_outlined,
