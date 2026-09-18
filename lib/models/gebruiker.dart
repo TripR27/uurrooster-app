@@ -37,11 +37,18 @@ class Gebruiker {
     this.naamInRooster,
     this.webuntisKlasId,
     this.webuntisMinor,
+    this.zichtbaarInOverzicht = true,
   });
 
   final String uid;
   final String naam;
   final GebruikerRol rol;
+
+  /// Of dit account zichtbaar is in het gezamenlijke overzicht voor gewone
+  /// leden (F7/F8) - de beheerder zet dit per persoon in het beheer-tab.
+  /// Default `true` (ontbreekt het veld nog in Firestore, dan gewoon
+  /// zichtbaar) - een beheerder ziet altijd iedereen, ongeacht dit veld.
+  final bool zichtbaarInOverzicht;
 
   /// Welk PDF-formaat + welke naam-in-de-PDF bij dit account hoort. Staat
   /// er niet automatisch bij (`null` bij een nieuw aangemaakt profiel) -
@@ -83,6 +90,7 @@ class Gebruiker {
       // Firestore kan een getal als int of double teruggeven.
       webuntisKlasId: (data['webuntisKlasId'] as num?)?.toInt(),
       webuntisMinor: data['webuntisMinor'] as String?,
+      zichtbaarInOverzicht: data['zichtbaarInOverzicht'] as bool? ?? true,
     );
   }
 }

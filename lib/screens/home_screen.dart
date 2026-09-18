@@ -7,6 +7,7 @@ import '../services/dienst_service.dart';
 import '../services/gebruiker_service.dart';
 import '../theme.dart';
 import '../util/datum_util.dart';
+import 'beheer_instellingen_screen.dart';
 import 'beheer_overzicht_screen.dart';
 import 'pdf_upload_screen.dart';
 import 'schoolrooster_screen.dart';
@@ -131,6 +132,20 @@ class _StartMenu extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (_) =>
                             BeheerOverzichtScreen(profiel: profiel),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+                _MenuKaart(
+                  icoon: Icons.admin_panel_settings_outlined,
+                  titel: 'Beheer',
+                  omschrijving: 'Zichtbaarheid van gezinsleden instellen',
+                  kleur: AppKleuren.bosgroenDonker,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const BeheerInstellingenScreen(),
                       ),
                     );
                   },

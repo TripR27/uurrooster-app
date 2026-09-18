@@ -613,7 +613,7 @@ op, zoals Ryan vraagt ("moet geskipt worden als fdRecup").
 
 ---
 
-## F7 — Beheerder-tab: zichtbaarheid per gezinslid (Ryans punt 2)
+## F7 — Beheerder-tab: zichtbaarheid per gezinslid (Ryans punt 2) ✅ GEDAAN
 
 **Wens:** een beheerder-tabje waar Ryan per persoon kan aan-/uitvinken of
 die persoon zichtbaar is in het gezamenlijke rooster. Onzichtbaar = die
@@ -624,35 +624,30 @@ nog.
 **Datamodel:**
 
 - `gebruikers`: nieuw veld `zichtbaarInOverzicht: bool` (default `true` als
-  het veld ontbreekt - bestaande profielen hoeven niet gemigreerd te
-  worden, `Gebruiker.vanDocument` leest `data['zichtbaarInOverzicht'] as
-  bool? ?? true`).
+  het veld ontbreekt - `Gebruiker.vanDocument` leest
+  `data['zichtbaarInOverzicht'] as bool? ?? true`, geen migratie nodig).
+  `lib/models/gebruiker.dart`.
 
 **Nieuw scherm:** `lib/screens/beheer_instellingen_screen.dart` -
 enkel bereikbaar voor de beheerder, via een nieuwe menukaart "Beheer" op
-`HomeScreen` (icoon `Icons.admin_panel_settings`, enkel `if
-(profiel.isBeheerder)`). Toont een lijst van `GebruikerService.alleGebruikers()`
-met per rij een `SwitchListTile` "Zichtbaar in gezamenlijk overzicht"
-gekoppeld aan `zichtbaarInOverzicht` (opslaan via een nieuwe
-`GebruikerService.bijwerkenVeld(uid, {...})`-achtige update-call). De
-beheerder zelf hoort hier niet als schakelbare rij in te staan - die is
-per definitie altijd zichtbaar voor zichzelf.
+`HomeScreen` (enkel `if (profiel.isBeheerder)`). Toont **iedereen** uit
+`GebruikerService.alleGebruikers()` (op naam gesorteerd) met per rij een
+`SwitchListTile` gekoppeld aan `zichtbaarInOverzicht`, opgeslagen via de
+nieuwe `GebruikerService.zetZichtbaarheid(uid, zichtbaar)`.
+
+**Afwijking van het oorspronkelijke plan:** de beheerder zelf (en élke
+andere beheerder, bv. het testaccount) staat wél gewoon mee in de lijst -
+niet uitgesloten zoals eerst bedacht. Ryans eigen voorbeeld ("stel claude
+is onzichtbaar") toont net dat ook een beheerder-account getoggled moet
+kunnen worden om die voor gewone leden te verbergen; een beheerder ziet
+altijd iedereen (los van dit veld), dus uitsluiten van jezelf uit de lijst
+had geen zin.
 
 Dit scherm krijgt in F11 een tweede sectie (meldingen) - vandaar de naam
-"Beheer" i.p.v. "Zichtbaarheid", en vandaar dat dit vóór F8 gebouwd wordt:
+"Beheer" i.p.v. "Zichtbaarheid", en vandaar dat dit vóór F8 gebouwd is:
 F8's rules hebben dit veld al nodig.
 
-**Firestore rules (`gebruikers`)** - enkel de beheerder mag dit veld
-zetten, dat volgt al uit de bestaande `update`-rule (elk account mag zijn
-**eigen** profiel bijwerken, maar de beheerder-tab schrijft naar **andermans**
-profiel). De huidige rule staat dat niet toe:
-
-```
-allow update: if eigenGebruiker(uid) &&
-  request.resource.data.rol == resource.data.rol;
-```
-
-→ wordt:
+**Firestore rules (`gebruikers`)** - aangepast in `firestore.rules`:
 
 ```
 allow update: if (eigenGebruiker(uid) &&
@@ -660,13 +655,21 @@ allow update: if (eigenGebruiker(uid) &&
   isBeheerder();
 ```
 
-(De beheerder mag alles aan andermans profiel bijwerken - in de praktijk
-enkel `zichtbaarInOverzicht` en, na F11, de meldingen-toggle. Zelfde
-vertrouwensmodel als F3 bij `diensten`.)
+⚠️ **Nog te publiceren door Ryan** (zelfde stap als bij F3: Firebase
+Console → Firestore Database → Rules → plakken → Publish). **Getest en
+bevestigd in de browser:** met de oude, nog live rules kan de beheerder al
+wél zijn/haar **eigen** profiel togglen (bv. het testaccount zelf), maar
+een **andermans** profiel togglen (bv. Amy) faalt met een
+`permission-denied`-snackbar tot de nieuwe rule gepubliceerd is - de
+schakelaar herstelt dan netjes naar de echte serverstatus. Zodra Ryan
+publiceert werkt het voor iedereen.
 
-- **Test:** widget-test voor het nieuwe scherm (toggle omzetten roept de
-  juiste service-call aan) + een simpele check dat `Gebruiker.vanDocument`
-  `true` teruggeeft als het veld ontbreekt.
+- **Test:** `test/models/gebruiker_test.dart` (default `zichtbaarInOverzicht
+  == true`, en expliciet `false` blijft behouden). Geen widget-test voor
+  het scherm zelf - dat roept rechtstreeks Firestore aan
+  (`GebruikerService`/`FirebaseFirestore.instance`) zoals de rest van de
+  app, en wordt zoals gebruikelijk via de browser-tool + het testaccount
+  functioneel getest i.p.v. gemockt.
 
 ---
 

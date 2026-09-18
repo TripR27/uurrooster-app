@@ -28,6 +28,13 @@ class GebruikerService {
     return snap.docs.map(Gebruiker.vanDocument).toList();
   }
 
+  /// Zet of dit account zichtbaar is in het gezamenlijke overzicht voor
+  /// gewone leden (F7) - enkel de beheerder mag dit voor iemand anders
+  /// aanpassen (zie firestore.rules, `gebruikers`-collectie).
+  static Future<void> zetZichtbaarheid(String uid, bool zichtbaar) async {
+    await _gebruikers.doc(uid).update({'zichtbaarInOverzicht': zichtbaar});
+  }
+
   static Future<Gebruiker> haalOfMaakProfiel(User account) async {
     final doc = await _gebruikers.doc(account.uid).get();
     if (doc.exists) {

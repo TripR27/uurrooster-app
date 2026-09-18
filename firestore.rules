@@ -35,9 +35,13 @@ service cloud.firestore {
       // console werkt met eigenaarsrechten).
       allow create: if eigenGebruiker(uid) && request.resource.data.rol == 'lid';
 
-      // Je naam mag je later zelf aanpassen, maar niet je eigen rol.
-      allow update: if eigenGebruiker(uid) &&
-        request.resource.data.rol == resource.data.rol;
+      // Je naam mag je later zelf aanpassen, maar niet je eigen rol. De
+      // beheerder mag daarnaast ook andermans profiel aanpassen (F7) - in
+      // de praktijk enkel `zichtbaarInOverzicht` vanuit het beheer-tab,
+      // zelfde vertrouwensmodel als F3 bij `diensten`.
+      allow update: if (eigenGebruiker(uid) &&
+          request.resource.data.rol == resource.data.rol) ||
+        isBeheerder();
 
       allow delete: if false;
     }
