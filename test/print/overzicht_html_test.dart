@@ -79,5 +79,9 @@ void main() {
     expect(html, isNot(contains('<tr class="weekend"><td class="dag">wo 08-07')));
     expect(html, contains('<td class="dag">wo 08-07'));
     expect(html, contains('tr.weekend td { background: #F2E2D5; }'));
+    // Zonder dit laten browsers achtergrondkleuren standaard weg bij het
+    // afdrukken (tenzij de gebruiker zelf "Achtergrondafbeeldingen"
+    // aanvinkt in het printvenster).
+    expect(html, contains('print-color-adjust: exact;'));
   });
 }

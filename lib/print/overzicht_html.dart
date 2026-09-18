@@ -25,7 +25,14 @@ const _stijl = '''
     text-align: left; white-space: pre-line; vertical-align: top; }
   th, td.dag { background: #e3e3e3; font-weight: bold; }
   tr.weekend td { background: #F2E2D5; }
-  @media print { body { margin: 0; } }
+  @media print {
+    body { margin: 0; }
+    /* Zonder dit laten de meeste browsers achtergrondkleuren gewoon weg
+       bij het afdrukken, tenzij de gebruiker zelf "Achtergrondafbeeldingen"
+       aanvinkt in het printvenster - dat willen we niet aan mama/Amy/Ryan
+       moeten uitleggen, dus forceren we het hier. */
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
 ''';
 
 /// Bouwt het gezamenlijke overzicht (zie BeheerOverzichtScreen) om tot een
