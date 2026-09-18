@@ -61,6 +61,17 @@ class GebruikerService {
     await _gebruikers.doc(uid).update({'zichtbaarInOverzicht': zichtbaar});
   }
 
+  /// Zet of dit account zelf het gezamenlijke overzicht mag openen (F12) -
+  /// enkel de beheerder mag dit aanpassen (zelfde rule als hierboven).
+  static Future<void> zetGezamenlijkOverzichtVerborgen(
+    String uid,
+    bool verborgen,
+  ) async {
+    await _gebruikers.doc(uid).update({
+      'gezamenlijkOverzichtVerborgen': verborgen,
+    });
+  }
+
   /// Zet je eigen bolletjeskleur in het gezamenlijke overzicht (F9) - enkel
   /// voor je eigen profiel (`eigenGebruiker(uid)` in firestore.rules), elk
   /// gezinslid kiest dit zelf.
@@ -68,11 +79,18 @@ class GebruikerService {
     await _gebruikers.doc(uid).update({'kleur': hexKleur});
   }
 
-  /// Zet of acties van [uid] een melding naar de beheerder(s) sturen (F11)
-  /// - enkel de beheerder mag dit voor iemand anders aanpassen (zie
-  /// firestore.rules, `gebruikers`-collectie, zelfde regel als F7).
-  static Future<void> zetMeldingenAan(String uid, bool aan) async {
-    await _gebruikers.doc(uid).update({'meldingenAan': aan});
+  /// Zet of een PDF-/schoolrooster-import door [uid] een melding naar de
+  /// beheerder(s) stuurt (F11/F12) - enkel de beheerder mag dit voor iemand
+  /// anders aanpassen (zie firestore.rules, `gebruikers`-collectie, zelfde
+  /// regel als F7).
+  static Future<void> zetMeldingenBulkAan(String uid, bool aan) async {
+    await _gebruikers.doc(uid).update({'meldingenBulkAan': aan});
+  }
+
+  /// Zet of handmatig iets toevoegen door [uid] een melding naar de
+  /// beheerder(s) stuurt (F11/F12) - zelfde rule als hierboven.
+  static Future<void> zetMeldingenSingleAan(String uid, bool aan) async {
+    await _gebruikers.doc(uid).update({'meldingenSingleAan': aan});
   }
 
   /// Zet je eigen "ik wil meldingen ontvangen"-schakelaar (F11) - enkel

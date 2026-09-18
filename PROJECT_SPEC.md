@@ -872,7 +872,7 @@ bevestigen dat de kleurkiezer daar ook verschijnt en werkt zoals verwacht.
 
 ---
 
-## F11 — Meldingen voor de beheerder via OneSignal (Ryans punt 5) ✅ CODE GEDAAN, ⚠️ push nog niet op een echt toestel bevestigd
+## F11 — Meldingen voor de beheerder via OneSignal (Ryans punt 5) ✅ GEDAAN, push bevestigd op een echt toestel (Android-emulator, zie F12)
 
 **Wens:** de beheerder krijgt een melding wanneer iemand iets invult - 1
 melding per PDF-import (batch, niet per losse shift) en 1 melding per
@@ -969,17 +969,142 @@ publiek gehost) - de app initialiseert OneSignal dan ook enkel op Android
 Beheer-tab renderen, alle toggles (algemeen + per persoon) slaan op en
 overleven een herlaad, scrollpositie blijft nu behouden na een toggle.
 
-⚠️ **Niet getest: of er écht een pushmelding aankomt.** Dat vereist een
-opnieuw gebouwde/geïnstalleerde Android-app met een geldig OneSignal-
-toestel-abonnement, wat niet mogelijk is vanuit de webbrowser-tool.
-**Actiepunt voor Ryan:** een nieuwe APK bouwen/installeren, inloggen (dat
-koppelt het toestel via `OneSignal.login`), de systeem-pop-up voor
-meldingen toestaan, en dan bv. via het lid-testaccount iets toevoegen om
-te zien of de melding op het beheerder-toestel aankomt.
+✅ **Ondertussen bevestigd: er komt écht een pushmelding aan.** Getest op
+een Android-emulator (zie F12 hieronder voor de details, incl. een
+config-gat dat daarbij aan het licht kwam en opgelost is).
 
 - **Test:** `test/services/melding_service_test.dart` (5 gevallen voor
   `bepaalOntvangers`), `test/models/gebruiker_test.dart` uitgebreid met
   `meldingenAan`/`wilMeldingen`-defaults + `copyWith`.
+
+---
+
+## F12 — Beheer-tab herbouwd: meldingen per gezinslid in een pop-up, bulk/single gesplitst, gezamenlijk overzicht per persoon verbergen ✅ GEDAAN
+
+**Wens (Ryan, na F11):** het Beheer-tab simpeler: gewoon een lijst van alle
+gezinsleden met een "Beheer"-knop ernaast. Die knop opent een pop-up met
+alles wat voor die ene persoon instelbaar is:
+
+- bulk-pushmeldingen (PDF-/schoolrooster-import) apart aan/uit van
+- single-pushmeldingen (handmatig iets toevoegen) - dit waren tot nu toe
+  één en dezelfde schakelaar (`meldingenAan`, F11);
+- onzichtbaar maken voor anderen (bestond al, F7/F8);
+- het gezamenlijke overzicht voor die persoon zélf verbergen (nieuw - los
+  van "onzichtbaar voor anderen": dat laatste gaat over hoe *anderen* deze
+  persoon zien, dit nieuwe veld over of deze persoon het overzicht zelf
+  nog mag *openen*).
+
+Daarboven een algemene "alle meldingen"-schakelaar (de bestaande
+`wilMeldingen`, F11) die - als ze uitstaat - de twee meldingen-schakelaars
+in elke pop-up locked (grijs, niet aanpasbaar, waarde blijft gewoon staan
+zoals ze stond) zodat duidelijk is dat er sowieso niks verstuurd wordt
+zolang die algemene schakelaar uitstaat.
+
+**Datamodel** (`lib/models/gebruiker.dart`):
+
+- `meldingenAan` (F11) vervangen door twee losse velden:
+  `meldingenBulkAan` (PDF-/schoolrooster-import) en `meldingenSingleAan`
+  (handmatig toevoegen), allebei default `true`. `Gebruiker.vanDocument`
+  valt terug op het oude `meldingenAan`-veld als de nieuwe nog ontbreken
+  (`data['meldingenBulkAan'] ?? data['meldingenAan'] ?? true`) - zo gaat
+  een eerder bewust uitgezette melding niet stilletjes weer aan bij
+  bestaande profielen, zonder dat er een migratiescript nodig is.
+- Nieuw veld `gezamenlijkOverzichtVerborgen: bool` (default `false`) - of
+  dit account het gezamenlijke overzicht zelf mag openen.
+- `copyWith` uitgebreid met alle vier de nieuwe/gewijzigde velden.
+
+**Services:**
+
+- `MeldingService.bepaalOntvangers`/`stuurMelding` krijgen een verplichte
+  `isBulk`-parameter, en kijken naar `meldingenBulkAan` resp.
+  `meldingenSingleAan` van de acteur i.p.v. het oude ene veld.
+  Aanroeppunten: `pdf_upload_screen.dart`/`schoolrooster_screen.dart` →
+  `isBulk: true`, `dienst_toevoegen_screen.dart` → `isBulk: false`.
+- `GebruikerService`: `zetMeldingenAan` vervangen door
+  `zetMeldingenBulkAan`/`zetMeldingenSingleAan`; nieuwe
+  `zetGezamenlijkOverzichtVerborgen`. Zelfde rules als de bestaande
+  per-persoon-velden (beheerder mag alles, zie firestore.rules `gebruikers`
+  update-rule uit F7) - geen rules-wijziging nodig.
+
+**`beheer_instellingen_screen.dart`** volledig herbouwd:
+
+- Bovenaan enkel nog de algemene "Alle meldingen ontvangen"-schakelaar
+  (`wilMeldingen`).
+- Daaronder een simpele lijst (`_GebruikerRij`): naam + rol + een
+  "Beheer"-knop die `_GebruikerBeheerDialoog` opent (een `AlertDialog` met
+  de 4 schakelaars voor die ene persoon). De pop-up houdt een eigen lokale
+  kopie van de 4 waarden bij (optimistisch bijwerken + foutmelding +
+  herstel bij mislukken, zelfde patroon as overal in de app), en meldt elke
+  geslaagde wijziging terug aan het hoofdscherm (`onGewijzigd`) zodat de
+  lijst declaratief meebeweegt zonder een volledige herlaad.
+- **Extra (op vraag van Ryan tijdens het testen):** een onzichtbaar
+  gezinslid krijgt in die lijst een lichtjes gedempte, taupe achtergrond
+  (`_GebruikerRij._gedempteAchtergrond`) + een doorstreept-oog-icoontje
+  naast de naam, zodat meteen zichtbaar is wie onzichtbaar staat zonder de
+  pop-up te moeten openen. Onzichtbare/verborgen gezinsleden krijgen ook
+  een klein terracotta "status-chipje" ("Onzichtbaar voor anderen" /
+  "Overzicht verborgen") onder hun naam. De lijst sorteert bovendien
+  zichtbare gezinsleden eerst, onzichtbare onderaan (beide op naam).
+- **`home_screen.dart`**: de menukaart "Gezamenlijk overzicht" staat nu
+  `if (!profiel.gezamenlijkOverzichtVerborgen)`.
+
+**Bijgevonden en opgelost tijdens het bouwen (geen bug in de nieuwe code,
+maar een layout-valkuil):** een `ListTile` met een `FilledButton`/
+`FilledButton.tonal` als `trailing`, in een `Row` zonder `Expanded`, knalt
+op web/Flutter met "Trailing widget consumes the entire tile width" resp.
+een oneindige-breedte-assertion - want het globale `filledButtonTheme` (zie
+`theme.dart`) zet `minimumSize: Size.fromHeight(48)` (bewust, voor de
+volle-breedte-CTA-knoppen elders in de app), wat impliciet een oneindige
+*minimumbreedte* betekent zodra zo'n knop níet in een `Expanded`/volle
+breedte staat. Opgelost door (a) de gezinsledenlijst als eigen `Row`/
+`Column`-layout te bouwen i.p.v. `ListTile`, en (b) de "Beheer"-knop een
+eigen `FilledButton.styleFrom(minimumSize: Size(64, 40))` te geven. Goed
+om te onthouden voor een volgende niet-volle-breedte-`FilledButton`
+ergens anders in de app.
+
+**Config-gat gevonden en opgelost (belangrijk voor volgende Android-tests):**
+`.env.android` bevatte enkel de Firebase-sleutels, niet
+`onesignalAppId`/`onesignalRestApiKey` (die stonden enkel in `.env`, voor
+web). Op Android crashte `OneSignal.login(uid)` in `auth_gate.dart`
+daardoor met `PlatformException: Must call 'initWithContext' before
+'login'` (de OneSignal-initialisatie in `main.dart` slaat zichzelf immers
+over als de App-ID leeg is). **Opgelost:** dezelfde twee regels als in
+`.env` ook aan `.env.android` toegevoegd (nooit gecommit, net als de rest
+van dat bestand).
+
+**Getest:**
+
+- **Browser** (beide testaccounts): pop-up opent met alle 4 schakelaars in
+  de juiste stand, elke schakelaar slaat op en overleeft een herlaad, de
+  algemene schakelaar locked de twee meldingen-schakelaars in de pop-up
+  (grijs, niet aanklikbaar) zolang ze uitstaat, de lijst sorteert
+  onzichtbare gezinsleden onderaan en toont meteen de gedempte
+  achtergrond/chips, en `claude2@test.com` verliest de menukaart
+  "Gezamenlijk overzicht" zodra `gezamenlijkOverzichtVerborgen` voor dat
+  account aanstaat (en krijgt ze terug zodra dat weer uitstaat).
+- **Android-emulator, écht op het toestel:** ingelogd als
+  `claude@test.com` (beheerder), systeem-pop-up voor meldingen
+  toegestaan. Vanuit de browser als `claude2@test.com` (gewoon lid) iets
+  handmatig toegevoegd → de pushmelding kwam binnen enkele seconden aan op
+  de emulator, met de verwachte specifieke tekst (`Claude2 heeft "19:42 -
+  20:42 (Echte push test)" toegevoegd.`). Daarna `meldingenSingleAan` voor
+  Claude2 uitgezet via het Beheer-tab en opnieuw iets toegevoegd: **geen**
+  nieuwe melding deze keer (enkel de oude nog zichtbaar in de
+  notificatiebalk) - bevestigt dat de per-persoon-schakelaar de push ook
+  écht blokkeert, niet enkel in de `bepaalOntvangers`-unit-tests. Nadien
+  alles teruggezet naar de oorspronkelijke stand.
+- ⚠️ **Niet end-to-end getest: de bulk-melding (PDF-/schoolrooster-import)
+  op een echt toestel** - zelfde beperking as bij F10: de browser-tool kan
+  het native bestandskiezer-dialoogvenster van `file_picker` niet bedienen,
+  dus een PDF kiezen vanuit de geautomatiseerde test lukt niet. De
+  onderliggende code is identiek aan het single-pad (enkel `isBulk: true`
+  i.p.v. `false`, en dat pad is wél end-to-end bevestigd) - Ryan test dit
+  best zelf één keer bij de volgende echte PDF-import.
+- **Test:** `test/services/melding_service_test.dart` uitgebreid (bulk vs.
+  single apart getest, incl. "bulk uit maar single werkt nog wel" en
+  omgekeerd), `test/models/gebruiker_test.dart` uitgebreid met
+  `meldingenBulkAan`/`meldingenSingleAan`/`gezamenlijkOverzichtVerborgen`-
+  defaults + de uitgebreide `copyWith`.
 
 ---
 
@@ -994,6 +1119,7 @@ te zien of de melding op het beheerder-toestel aankomt.
 | 3 | Eigen kleur bolletje (gezamenlijk, zelf te kiezen) | F9 | 5 - bouwt op F8's scherm |
 | 4 | Eigen kleur per item (persoonlijke agenda) | F10 | 6 - hergebruikt F9's palet |
 | 5 | Meldingen naar beheerder (OneSignal) + toggles | F11 | 7 - grootste, nieuwe dependency, bouwt op F7's scherm |
+| - | Beheer-tab herbouwd: pop-up per gezinslid, bulk/single-meldingen, overzicht verbergen | F12 | 8 - bouwt op F7/F11's scherm |
 
 Per feature: code → `flutter analyze` + `flutter test` → visuele/
 functionele check → commit + push. F7 en F8 vereisen telkens een

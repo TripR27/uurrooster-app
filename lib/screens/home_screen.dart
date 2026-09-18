@@ -120,26 +120,33 @@ class _StartMenu extends StatelessWidget {
                   );
                 },
               ),
-              const SizedBox(height: 16),
-              _MenuKaart(
-                icoon: Icons.groups,
-                titel: 'Gezamenlijk overzicht',
-                omschrijving: 'Rooster van iedereen samen bekijken',
-                kleur: AppKleuren.inkt,
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => BeheerOverzichtScreen(profiel: profiel),
-                    ),
-                  );
-                },
-              ),
+              // Verborgen als de beheerder dat voor deze persoon zo ingesteld
+              // heeft in het Beheer-tab (F12) - los van of ánderen deze
+              // persoon zien (F7/F8).
+              if (!profiel.gezamenlijkOverzichtVerborgen) ...[
+                const SizedBox(height: 16),
+                _MenuKaart(
+                  icoon: Icons.groups,
+                  titel: 'Gezamenlijk overzicht',
+                  omschrijving: 'Rooster van iedereen samen bekijken',
+                  kleur: AppKleuren.inkt,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            BeheerOverzichtScreen(profiel: profiel),
+                      ),
+                    );
+                  },
+                ),
+              ],
               if (profiel.isBeheerder) ...[
                 const SizedBox(height: 16),
                 _MenuKaart(
                   icoon: Icons.admin_panel_settings_outlined,
                   titel: 'Beheer',
-                  omschrijving: 'Zichtbaarheid van gezinsleden instellen',
+                  omschrijving:
+                      'Meldingen en zichtbaarheid per gezinslid instellen',
                   kleur: AppKleuren.bosgroenDonker,
                   onTap: () {
                     Navigator.of(context).push(

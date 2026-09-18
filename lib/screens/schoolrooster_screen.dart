@@ -104,6 +104,7 @@ class _SchoolroosterScreenState extends State<SchoolroosterScreen> {
           tekst:
               '${widget.profiel.naam} heeft het schoolrooster opgehaald '
               '(${voorbeeld.length} schooldagen).',
+          isBulk: true,
         ),
       );
       if (mounted) Navigator.of(context).pop(voorbeeld.length);

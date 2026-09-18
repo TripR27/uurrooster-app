@@ -21,6 +21,21 @@ void main() {
     expect(gebruiker.zichtbaarInOverzicht, isFalse);
   });
 
+  test('gezamenlijkOverzichtVerborgen is standaard false (F12)', () {
+    const gebruiker = Gebruiker(uid: 'u1', naam: 'Amy', rol: GebruikerRol.lid);
+    expect(gebruiker.gezamenlijkOverzichtVerborgen, isFalse);
+  });
+
+  test('gezamenlijkOverzichtVerborgen kan expliciet true gezet worden', () {
+    const gebruiker = Gebruiker(
+      uid: 'u1',
+      naam: 'Amy',
+      rol: GebruikerRol.lid,
+      gezamenlijkOverzichtVerborgen: true,
+    );
+    expect(gebruiker.gezamenlijkOverzichtVerborgen, isTrue);
+  });
+
   test('kleur is standaard null (F9) tot iemand er zelf een kiest', () {
     const gebruiker = Gebruiker(uid: 'u1', naam: 'Amy', rol: GebruikerRol.lid);
     expect(gebruiker.kleur, isNull);
@@ -36,10 +51,30 @@ void main() {
     expect(gebruiker.kleur, '#D8698B');
   });
 
-  test('meldingenAan en wilMeldingen zijn standaard true (F11)', () {
-    const gebruiker = Gebruiker(uid: 'u1', naam: 'Amy', rol: GebruikerRol.lid);
-    expect(gebruiker.meldingenAan, isTrue);
-    expect(gebruiker.wilMeldingen, isTrue);
+  test(
+    'meldingenBulkAan, meldingenSingleAan en wilMeldingen zijn standaard '
+    'true (F11/F12)',
+    () {
+      const gebruiker = Gebruiker(
+        uid: 'u1',
+        naam: 'Amy',
+        rol: GebruikerRol.lid,
+      );
+      expect(gebruiker.meldingenBulkAan, isTrue);
+      expect(gebruiker.meldingenSingleAan, isTrue);
+      expect(gebruiker.wilMeldingen, isTrue);
+    },
+  );
+
+  test('meldingenBulkAan en meldingenSingleAan zijn los van elkaar', () {
+    const gebruiker = Gebruiker(
+      uid: 'u1',
+      naam: 'Amy',
+      rol: GebruikerRol.lid,
+      meldingenBulkAan: false,
+    );
+    expect(gebruiker.meldingenBulkAan, isFalse);
+    expect(gebruiker.meldingenSingleAan, isTrue);
   });
 
   group('Gebruiker.copyWith', () {
@@ -50,7 +85,9 @@ void main() {
         rol: GebruikerRol.lid,
         kleur: '#D8698B',
         zichtbaarInOverzicht: true,
-        meldingenAan: true,
+        gezamenlijkOverzichtVerborgen: false,
+        meldingenBulkAan: true,
+        meldingenSingleAan: true,
         wilMeldingen: true,
       );
 
@@ -60,13 +97,15 @@ void main() {
       // De rest overleeft - dit is precies de fout die copyWith voorkomt
       // (een handmatige reconstructie zou kleur hier stilletjes wissen).
       expect(bijgewerkt.kleur, '#D8698B');
-      expect(bijgewerkt.meldingenAan, isTrue);
+      expect(bijgewerkt.gezamenlijkOverzichtVerborgen, isFalse);
+      expect(bijgewerkt.meldingenBulkAan, isTrue);
+      expect(bijgewerkt.meldingenSingleAan, isTrue);
       expect(bijgewerkt.wilMeldingen, isTrue);
       expect(bijgewerkt.uid, gebruiker.uid);
       expect(bijgewerkt.naam, gebruiker.naam);
     });
 
-    test('kan meldingenAan en wilMeldingen los van elkaar wijzigen', () {
+    test('kan alle vier de schakelaars los van elkaar wijzigen', () {
       const gebruiker = Gebruiker(
         uid: 'u1',
         naam: 'Ryan',
@@ -74,11 +113,15 @@ void main() {
       );
 
       final bijgewerkt = gebruiker.copyWith(
-        meldingenAan: false,
+        gezamenlijkOverzichtVerborgen: true,
+        meldingenBulkAan: false,
+        meldingenSingleAan: false,
         wilMeldingen: false,
       );
 
-      expect(bijgewerkt.meldingenAan, isFalse);
+      expect(bijgewerkt.gezamenlijkOverzichtVerborgen, isTrue);
+      expect(bijgewerkt.meldingenBulkAan, isFalse);
+      expect(bijgewerkt.meldingenSingleAan, isFalse);
       expect(bijgewerkt.wilMeldingen, isFalse);
     });
   });

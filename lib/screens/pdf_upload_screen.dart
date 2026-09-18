@@ -86,6 +86,7 @@ class _PdfUploadScreenState extends State<PdfUploadScreen> {
           tekst:
               '${widget.profiel.naam} heeft een PDF ingelezen '
               '(${voorbeeld.length} shiften).',
+          isBulk: true,
         ),
       );
       if (mounted) Navigator.of(context).pop(voorbeeld.length);

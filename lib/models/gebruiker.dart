@@ -38,8 +38,10 @@ class Gebruiker {
     this.webuntisKlasId,
     this.webuntisMinor,
     this.zichtbaarInOverzicht = true,
+    this.gezamenlijkOverzichtVerborgen = false,
     this.kleur,
-    this.meldingenAan = true,
+    this.meldingenBulkAan = true,
+    this.meldingenSingleAan = true,
     this.wilMeldingen = true,
   });
 
@@ -53,16 +55,29 @@ class Gebruiker {
   /// zichtbaar) - een beheerder ziet altijd iedereen, ongeacht dit veld.
   final bool zichtbaarInOverzicht;
 
+  /// Of **dit account zelf** het gezamenlijke overzicht mag openen (F12) -
+  /// de beheerder zet dit per persoon in het beheer-tab. Staat dit op
+  /// `true`, dan verdwijnt de menukaart "Gezamenlijk overzicht" op het
+  /// startscherm voor deze persoon. Los van [zichtbaarInOverzicht] (dat
+  /// bepaalt of ánderen deze persoon zien, dit bepaalt of deze persoon zelf
+  /// het overzicht mag zien). Default `false`.
+  final bool gezamenlijkOverzichtVerborgen;
+
   /// Hex-kleur (bv. `"#E0704F"`) van het eigen bolletje in het
   /// gezamenlijke overzicht (F9) - kiest elk gezinslid zelf, uit
   /// `kleurenPalet` (`lib/util/kleuren_palet.dart`). `null` = nog niet
   /// gekozen, dan geldt `kleurStandaardHex`.
   final String? kleur;
 
-  /// Of acties van **dit account** (PDF-import, handmatig iets toevoegen)
-  /// een melding naar de beheerder(s) sturen (F11) - de beheerder zet dit
-  /// per persoon in het beheer-tab. Default `true`.
-  final bool meldingenAan;
+  /// Of een PDF-/schoolrooster-import door **dit account** een melding naar
+  /// de beheerder(s) stuurt (F11/F12) - de beheerder zet dit per persoon in
+  /// het beheer-tab. Default `true`.
+  final bool meldingenBulkAan;
+
+  /// Of handmatig iets toevoegen door **dit account** een melding naar de
+  /// beheerder(s) stuurt (F11/F12) - los van [meldingenBulkAan], de
+  /// beheerder zet dit ook per persoon in het beheer-tab. Default `true`.
+  final bool meldingenSingleAan;
 
   /// Enkel relevant als dit account zelf beheerder is: of **deze
   /// beheerder** meldingen wil ontvangen (F11) - de algemene aan/uit-
@@ -101,8 +116,10 @@ class Gebruiker {
   /// overige velden (zoals [kleur]) per ongeluk te verliezen.
   Gebruiker copyWith({
     bool? zichtbaarInOverzicht,
+    bool? gezamenlijkOverzichtVerborgen,
     String? kleur,
-    bool? meldingenAan,
+    bool? meldingenBulkAan,
+    bool? meldingenSingleAan,
     bool? wilMeldingen,
   }) => Gebruiker(
     uid: uid,
@@ -113,8 +130,11 @@ class Gebruiker {
     webuntisKlasId: webuntisKlasId,
     webuntisMinor: webuntisMinor,
     zichtbaarInOverzicht: zichtbaarInOverzicht ?? this.zichtbaarInOverzicht,
+    gezamenlijkOverzichtVerborgen:
+        gezamenlijkOverzichtVerborgen ?? this.gezamenlijkOverzichtVerborgen,
     kleur: kleur ?? this.kleur,
-    meldingenAan: meldingenAan ?? this.meldingenAan,
+    meldingenBulkAan: meldingenBulkAan ?? this.meldingenBulkAan,
+    meldingenSingleAan: meldingenSingleAan ?? this.meldingenSingleAan,
     wilMeldingen: wilMeldingen ?? this.wilMeldingen,
   );
 
@@ -132,8 +152,21 @@ class Gebruiker {
       webuntisKlasId: (data['webuntisKlasId'] as num?)?.toInt(),
       webuntisMinor: data['webuntisMinor'] as String?,
       zichtbaarInOverzicht: data['zichtbaarInOverzicht'] as bool? ?? true,
+      gezamenlijkOverzichtVerborgen:
+          data['gezamenlijkOverzichtVerborgen'] as bool? ?? false,
       kleur: data['kleur'] as String?,
-      meldingenAan: data['meldingenAan'] as bool? ?? true,
+      // Vervangt het oude, ene `meldingenAan`-veld (F11) door twee losse
+      // schakelaars (F12) - valt terug op dat oude veld als de nieuwe nog
+      // niet bestaan (bestaande profielen), zodat een eerder bewust
+      // uitgezette melding niet stilletjes weer aan komt te staan.
+      meldingenBulkAan:
+          data['meldingenBulkAan'] as bool? ??
+          data['meldingenAan'] as bool? ??
+          true,
+      meldingenSingleAan:
+          data['meldingenSingleAan'] as bool? ??
+          data['meldingenAan'] as bool? ??
+          true,
       wilMeldingen: data['wilMeldingen'] as bool? ?? true,
     );
   }

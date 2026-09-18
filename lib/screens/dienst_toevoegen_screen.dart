@@ -80,6 +80,7 @@ class _DienstToevoegenScreenState extends State<DienstToevoegenScreen> {
             tekst:
                 '${widget.profiel.naam} heeft "${dienst.naarTekst()}" '
                 'toegevoegd.',
+            isBulk: false,
           ),
         );
       }
