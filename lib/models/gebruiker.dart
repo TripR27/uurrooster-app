@@ -39,6 +39,8 @@ class Gebruiker {
     this.webuntisMinor,
     this.zichtbaarInOverzicht = true,
     this.kleur,
+    this.meldingenAan = true,
+    this.wilMeldingen = true,
   });
 
   final String uid;
@@ -56,6 +58,16 @@ class Gebruiker {
   /// `kleurenPalet` (`lib/util/kleuren_palet.dart`). `null` = nog niet
   /// gekozen, dan geldt `kleurStandaardHex`.
   final String? kleur;
+
+  /// Of acties van **dit account** (PDF-import, handmatig iets toevoegen)
+  /// een melding naar de beheerder(s) sturen (F11) - de beheerder zet dit
+  /// per persoon in het beheer-tab. Default `true`.
+  final bool meldingenAan;
+
+  /// Enkel relevant als dit account zelf beheerder is: of **deze
+  /// beheerder** meldingen wil ontvangen (F11) - de algemene aan/uit-
+  /// schakelaar, naast de per-persoon-toggle hierboven. Default `true`.
+  final bool wilMeldingen;
 
   /// Welk PDF-formaat + welke naam-in-de-PDF bij dit account hoort. Staat
   /// er niet automatisch bij (`null` bij een nieuw aangemaakt profiel) -
@@ -84,6 +96,28 @@ class Gebruiker {
   RoosterParser? maakParser() =>
       maakRoosterParser(formaat: roosterFormaat, naamInRooster: naamInRooster);
 
+  /// Kopie met enkel de opgegeven velden gewijzigd - vooral gebruikt voor
+  /// optimistische UI-updates (bv. het beheer-tab, F7/F11) zonder alle
+  /// overige velden (zoals [kleur]) per ongeluk te verliezen.
+  Gebruiker copyWith({
+    bool? zichtbaarInOverzicht,
+    String? kleur,
+    bool? meldingenAan,
+    bool? wilMeldingen,
+  }) => Gebruiker(
+    uid: uid,
+    naam: naam,
+    rol: rol,
+    roosterFormaat: roosterFormaat,
+    naamInRooster: naamInRooster,
+    webuntisKlasId: webuntisKlasId,
+    webuntisMinor: webuntisMinor,
+    zichtbaarInOverzicht: zichtbaarInOverzicht ?? this.zichtbaarInOverzicht,
+    kleur: kleur ?? this.kleur,
+    meldingenAan: meldingenAan ?? this.meldingenAan,
+    wilMeldingen: wilMeldingen ?? this.wilMeldingen,
+  );
+
   factory Gebruiker.vanDocument(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
     return Gebruiker(
@@ -99,6 +133,8 @@ class Gebruiker {
       webuntisMinor: data['webuntisMinor'] as String?,
       zichtbaarInOverzicht: data['zichtbaarInOverzicht'] as bool? ?? true,
       kleur: data['kleur'] as String?,
+      meldingenAan: data['meldingenAan'] as bool? ?? true,
+      wilMeldingen: data['wilMeldingen'] as bool? ?? true,
     );
   }
 }

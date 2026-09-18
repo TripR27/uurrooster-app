@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../models/dienst.dart';
 import '../models/gebruiker.dart';
 import '../services/dienst_service.dart';
+import '../services/melding_service.dart';
 import '../theme.dart';
 import '../widgets/dienst_tile.dart';
 import '../widgets/kleur_kiezer.dart';
@@ -75,6 +78,16 @@ class _PdfUploadScreenState extends State<PdfUploadScreen> {
     });
     try {
       await DienstService.slaPdfImportOp(voorbeeld);
+      // Niet awaiten: een melding is "nice to have", de opslag hierboven
+      // is al gelukt en de gebruiker hoeft niet te wachten op OneSignal.
+      unawaited(
+        MeldingService.stuurMelding(
+          acteur: widget.profiel,
+          tekst:
+              '${widget.profiel.naam} heeft een PDF ingelezen '
+              '(${voorbeeld.length} shiften).',
+        ),
+      );
       if (mounted) Navigator.of(context).pop(voorbeeld.length);
     } catch (e) {
       setState(() => _fout = 'Kon niet opslaan: $e');

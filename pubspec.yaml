@@ -52,8 +52,14 @@ dependencies:
   web: ^1.1.1
   path_provider: ^2.1.6
   share_plus: ^13.3.0
-  # Voor het ophalen van het schoolrooster uit de publieke WebUntis-API (F4).
+  # Voor het ophalen van het schoolrooster uit de publieke WebUntis-API (F4)
+  # én om zelf gerichte pushmeldingen te versturen via de OneSignal
+  # REST-API (F11, melding_service.dart).
   http: ^1.5.0
+  # Pushmeldingen voor de beheerder (F11) - gratis alternatief voor
+  # Firebase Cloud Messaging + Cloud Functions (die het Blaze-plan
+  # vereisen, bewust vermeden, zie PROJECT_SPEC.md §3).
+  onesignal_flutter: ^5.6.10
 
 dev_dependencies:
   flutter_test:

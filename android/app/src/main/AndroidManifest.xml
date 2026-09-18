@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Nodig voor Firestore/WebUntis (al impliciet aanwezig via die
+         plugins) en expliciet vereist door OneSignal (F11, meldingen). -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <application
         android:label="Mama's rooster app"
         android:name="${applicationName}"

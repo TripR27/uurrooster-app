@@ -1,5 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:onesignal_flutter/onesignal_flutter.dart';
 
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
@@ -31,10 +33,38 @@ class AuthGate extends StatelessWidget {
 
         final gebruiker = snapshot.data;
         if (gebruiker == null) {
+          _ontkoppelOneSignal();
           return const LoginScreen();
         }
+        _koppelOneSignal(gebruiker.uid);
         return const HomeScreen();
       },
     );
   }
+}
+
+/// Laatst gekoppelde uid - voorkomt dat elke rebuild van [AuthGate] (bv.
+/// bij een Firestore-snapshot elders in de boom) opnieuw `OneSignal.login`
+/// aanroept voor dezelfde, al gekoppelde gebruiker.
+String? _laatstGekoppeldeUid;
+
+/// Koppelt dit toestel aan de Firebase-uid als OneSignal "External ID"
+/// (F11) - zo weet `MeldingService` exact wie een melding moet krijgen,
+/// zonder zelf device-tokens te moeten bijhouden. Enkel op Android: de
+/// webversie wordt niet publiek gehost en heeft geen OneSignal-config
+/// (zie main.dart).
+void _koppelOneSignal(String uid) {
+  if (kIsWeb || _laatstGekoppeldeUid == uid) return;
+  _laatstGekoppeldeUid = uid;
+  OneSignal.login(uid);
+  OneSignal.Notifications.requestPermission(true);
+}
+
+/// Ontkoppelt bij het uitloggen - anders zou een volgende inlog op
+/// hetzelfde toestel (bv. tijdens testen, met een ander testaccount) de
+/// meldingen nog naar de vorige gebruiker sturen.
+void _ontkoppelOneSignal() {
+  if (kIsWeb || _laatstGekoppeldeUid == null) return;
+  _laatstGekoppeldeUid = null;
+  OneSignal.logout();
 }

@@ -1,7 +1,9 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:onesignal_flutter/onesignal_flutter.dart';
 
 import 'auth_gate.dart';
 import 'firebase_options.dart';
@@ -16,6 +18,16 @@ void main() async {
   // (ShiftenScreen, via table_calendar) - zonder dit gooit intl een
   // LocaleDataException zodra er een niet-Engelse locale gebruikt wordt.
   await initializeDateFormatting('nl_BE');
+  // Pushmeldingen voor de beheerder (F11) - enkel op Android geconfigureerd
+  // in OneSignal (de webversie wordt toch niet publiek gehost, zie
+  // PROJECT_SPEC.md §8). `OneSignal.login(uid)` (koppelt het toestel aan de
+  // Firebase-uid) gebeurt in auth_gate.dart zodra iemand ingelogd is.
+  if (!kIsWeb) {
+    const oneSignalAppId = String.fromEnvironment('onesignalAppId');
+    if (oneSignalAppId.isNotEmpty) {
+      OneSignal.initialize(oneSignalAppId);
+    }
+  }
   runApp(const MyApp());
 }
 

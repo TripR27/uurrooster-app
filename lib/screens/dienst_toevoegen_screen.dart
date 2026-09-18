@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/dienst.dart';
 import '../models/gebruiker.dart';
 import '../services/dienst_service.dart';
+import '../services/melding_service.dart';
 import '../widgets/dienst_formulier.dart';
 
 /// Scherm om zelf iets toe te voegen zonder PDF - dat is niet altijd een
@@ -52,22 +55,34 @@ class _DienstToevoegenScreenState extends State<DienstToevoegenScreen> {
       _bezig = true;
       _fout = null;
     });
+    final dienst = Dienst(
+      gebruikerId: _doelgebruiker.uid,
+      gebruikerNaam: _doelgebruiker.naam,
+      datum: concept.datum,
+      eindDatum: concept.eindDatum,
+      startTijd: concept.startTijd,
+      eindTijd: concept.eindTijd,
+      heleDag: concept.heleDag,
+      omschrijving: concept.omschrijving,
+      bron: DienstBron.handmatig,
+      aangemaaktOp: DateTime.now(),
+      kleur: concept.kleur,
+    );
     try {
-      await DienstService.aanmaken(
-        Dienst(
-          gebruikerId: _doelgebruiker.uid,
-          gebruikerNaam: _doelgebruiker.naam,
-          datum: concept.datum,
-          eindDatum: concept.eindDatum,
-          startTijd: concept.startTijd,
-          eindTijd: concept.eindTijd,
-          heleDag: concept.heleDag,
-          omschrijving: concept.omschrijving,
-          bron: DienstBron.handmatig,
-          aangemaaktOp: DateTime.now(),
-          kleur: concept.kleur,
-        ),
-      );
+      await DienstService.aanmaken(dienst);
+      // Enkel een melding als je voor jezelf iets toevoegt - voegt de
+      // beheerder iets toe voor iemand anders (F3), dan weet die dat al.
+      // Niet awaiten: nice to have, mag de opslaan-flow niet vertragen.
+      if (widget.voorGebruiker == null) {
+        unawaited(
+          MeldingService.stuurMelding(
+            acteur: widget.profiel,
+            tekst:
+                '${widget.profiel.naam} heeft "${dienst.naarTekst()}" '
+                'toegevoegd.',
+          ),
+        );
+      }
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       setState(() => _fout = 'Kon niet opslaan: $e');

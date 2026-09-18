@@ -144,7 +144,8 @@ class _StartMenu extends StatelessWidget {
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => const BeheerInstellingenScreen(),
+                        builder: (_) =>
+                            BeheerInstellingenScreen(profiel: profiel),
                       ),
                     );
                   },

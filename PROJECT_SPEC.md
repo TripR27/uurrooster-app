@@ -872,98 +872,114 @@ bevestigen dat de kleurkiezer daar ook verschijnt en werkt zoals verwacht.
 
 ---
 
-## F11 — Meldingen voor de beheerder via OneSignal (Ryans punt 5)
+## F11 — Meldingen voor de beheerder via OneSignal (Ryans punt 5) ✅ CODE GEDAAN, ⚠️ push nog niet op een echt toestel bevestigd
 
 **Wens:** de beheerder krijgt een melding wanneer iemand iets invult - 1
 melding per PDF-import (batch, niet per losse shift) en 1 melding per
 handmatig toegevoegd item. Aan/uit te zetten per persoon én algemeen, in
-het beheerder-tab (F7's scherm).
+het beheerder-tab (F7's scherm). **Bevestigd door Ryan:** dit is enkel
+voor hemzelf als beheerder bedoeld, en de APK gaat toch enkel naar het
+gezin via Firebase App Distribution - het risico van de REST-key in de
+app (zie hieronder) weegt dus niet zwaar.
 
-**Waarom niet gewoon Firebase:** een Firestore-write kan geen client
-rechtstreeks pushen naar een andere client zonder een server ertussen
-(vandaar de "1 melding per gebeurtenis"-eis, geen polling). Firebase Cloud
-Messaging zelf is gratis, maar het *versturen* van een gerichte melding
-vanuit een client-event vereist normaal een Cloud Function (trigger op een
-Firestore-write) - en dat vereist het betaalde Blaze-plan, wat dit project
-bewust vermijdt (zie §3). Ryan koos daarom voor een gratis externe dienst.
+**Waarom niet gewoon Firebase:** zie de oorspronkelijke analyse hieronder
+- ongewijzigd, uiteindelijk zo gebouwd.
 
-**Gekozen dienst: [OneSignal](https://onesignal.com)** (gratis tier,
-ruim voldoende voor een gezinsapp van een handvol accounts). Ondersteunt
-Android + web, en laat toe rechtstreeks vanuit de app (zonder eigen
-server) een REST-call te doen om een gerichte melding te versturen.
+**Gekozen dienst: [OneSignal](https://onesignal.com)**, App-ID
+`d630cfd0-a267-487d-ae04-850de535d303`. Android gekoppeld aan hetzelfde
+Firebase-project (`uurrooster-app`) via een Firebase-service-account-JSON
+(Firebase Console → Projectinstellingen → Service accounts → Generate new
+private key), die Ryan rechtstreeks bij OneSignal geüpload heeft. Web is
+bewust **niet** aangevinkt in OneSignal (de webversie wordt toch niet
+publiek gehost) - de app initialiseert OneSignal dan ook enkel op Android
+(`if (!kIsWeb)`), zowel in `main.dart` als `auth_gate.dart`.
 
-⚠️ **Belangrijke afweging om met Ryan te bevestigen voor het bouwen:**
-zonder eigen server moet de OneSignal **REST API-key** mee in de
-gecompileerde app (APK/web-build) zitten om een melding te kunnen
-versturen - net zoals de Firebase-config nu al in `.env`/`.env.android`
-zit. Wie de APK decompileert kan die key vinden en er ongewenste
-meldingen mee versturen naar het gezin (een hinderlijk risico, **geen**
-datalek - Firestore-rules blijven de échte data beschermen). Dat is
-hetzelfde soort bewuste trade-off als de anonieme WebUntis-API in F4:
-aanvaardbaar voor een kleine privé-gezinsapp, maar het is Ryans keuze om
-dat zo te bevestigen voor het bouwen.
+**Datamodel** (`lib/models/gebruiker.dart`):
 
-**Datamodel:**
+- `meldingenAan: bool` (default `true`) - of acties van **deze persoon**
+  een melding naar de beheerder(s) sturen. Instelbaar per persoon
+  (iedereen, ook beheerders) in het Beheer-tab.
+- `wilMeldingen: bool` (default `true`) - enkel relevant als dit account
+  zelf beheerder is: de algemene "ik wil meldingen ontvangen"-schakelaar,
+  enkel bewerkbaar voor de ingelogde beheerder over zijn eigen profiel.
+- **Nieuwe `Gebruiker.copyWith(...)`** - de optimistische UI-update in het
+  beheer-tab (uit F7) reconstrueerde tot dan een `Gebruiker` handmatig
+  veld per veld, wat `kleur` (F9) stilletjes zou gewist hebben zodra er
+  een tweede toggle-veld bijkwam. `copyWith` lost dat structureel op en
+  wordt nu voor alle drie de toggles (zichtbaarheid, meldingenAan,
+  wilMeldingen) gebruikt.
 
-- `gebruikers`: `meldingenAan: bool` (default `true`) - of acties van
-  **deze persoon** (PDF-import, handmatig item toevoegen) een melding naar
-  de beheerder(s) sturen. Instelbaar per persoon in het beheerder-tab
-  (F7's scherm, sectie "Meldingen").
-- `gebruikers`: `wilMeldingen: bool` (default `true`) - enkel relevant als
-  deze persoon zelf beheerder is: de algemene aan/uit-schakelaar ("wil ík
-  als beheerder meldingen ontvangen"). Bij meerdere beheerders in de
-  toekomst heeft elke beheerder zijn eigen schakelaar.
+**Wat gebouwd is:**
 
-**Wat te bouwen:**
-
-- **Dependency:** `onesignal_flutter` toevoegen aan `pubspec.yaml`.
-  `ONESIGNAL_APP_ID` (publiek, mag in `.env`) en
-  `ONESIGNAL_REST_API_KEY` (gevoelig, zelfde behandeling als de
-  Firebase-keys: in `.env`/`.env.android`, nooit hardcoded, nooit in git)
-  toevoegen - Ryan maakt zelf een gratis OneSignal-account + app aan en
-  bezorgt die twee waarden.
-- **`main.dart`**: OneSignal initialiseren met de App-ID, en na een
-  geslaagde login `OneSignal.login(account.uid)` aanroepen (koppelt het
-  toestel aan de Firebase-uid als "External ID" - zo weet je exact wie een
-  melding moet krijgen zonder zelf device-tokens te moeten bijhouden).
-  Op Android ook `OneSignal.Notifications.requestPermission(true)` (nodig
-  vanaf Android 13).
+- **Dependency** `onesignal_flutter: ^5.6.10` in `pubspec.yaml` (exacte
+  stabiele versie opgehaald via OneSignal's officiële releases-JSON,
+  zoals hun eigen AI-integratie-instructies voorschrijven). Android:
+  `<uses-permission android:name="android.permission.INTERNET" />`
+  toegevoegd aan `AndroidManifest.xml` (`compileSdk`/`minSdk` komen al via
+  Flutter's eigen defaults ruim boven OneSignal's minimum). **Geen**
+  `google-services.json`/Google-Services-plugin toegevoegd - OneSignal
+  regelt FCM-registratie zelf, en dat zou conflicteren met hoe dit project
+  Firebase al configureert (`.env`/`.env.android`, geen `google-services.json`).
+- **`.env`/`.env.android`**: `onesignalAppId` (publiek) en
+  `onesignalRestApiKey` (gevoelig) - zelfde behandeling als de
+  Firebase-sleutels, nooit gecommit.
+- **`main.dart`**: `OneSignal.initialize(oneSignalAppId)` vóór `runApp()`,
+  enkel op Android (`!kIsWeb`) en enkel als de App-ID niet leeg is.
+- **`auth_gate.dart`**: `OneSignal.login(uid)` (koppelt het toestel aan de
+  Firebase-uid als "External ID") + `OneSignal.Notifications.
+  requestPermission(true)` zodra iemand ingelogd is; `OneSignal.logout()`
+  bij het uitloggen (anders zou een volgend testaccount op hetzelfde
+  toestel nog aan de vorige gekoppeld blijven). Een module-level
+  `_laatstGekoppeldeUid` voorkomt dat elke rebuild opnieuw koppelt.
 - **Nieuwe service** `lib/services/melding_service.dart`:
-  - `bepaalOntvangers(List<Gebruiker> alleGebruikers, Gebruiker acteur) ->
-    List<Gebruiker>` - **pure functie, apart unit-testbaar**: alle
-    beheerders met `wilMeldingen == true`, maar enkel als
-    `acteur.meldingenAan == true` (en de acteur zelf niet meetellen als
-    die toevallig ook beheerder is - je hoeft geen melding over je eigen
-    actie te krijgen).
+  - `bepaalOntvangers(List<Gebruiker> gezinsleden, Gebruiker acteur)` -
+    **pure functie, apart unit-getest** (5 testgevallen: normaal geval,
+    enkel beheerders, `wilMeldingen == false`, `meldingenAan == false`,
+    nooit jezelf).
   - `stuurMelding({required Gebruiker acteur, required String tekst})` -
-    zoekt ontvangers via bovenstaande functie, en doet per ontvanger (of
-    in 1 call met een lijst External IDs) een `http.post` naar
-    `https://onesignal.com/api/v1/notifications` met de REST-key in de
-    `Authorization`-header, `include_aliases: {external_id: [...]}` en de
-    tekst. Faalt dit (geen internet, OneSignal down, ...) dan mag dat de
-    opslag van de dienst zelf nooit blokkeren - `try/catch`, gewoon
-    negeren/loggen, de shift is dan al opgeslagen.
-- **Aanroeppunten** (enkel wanneer iemand **voor zichzelf** iets invult -
-  niet wanneer de beheerder vanuit het gezamenlijke overzicht iets voor
-  een ander toevoegt, F3/F8 - dat weet de beheerder al):
-  - `pdf_upload_screen.dart`, na een geslaagde `slaPdfImportOp`: 1 melding,
-    bv. `"${profiel.naam} heeft een PDF ingelezen (${voorbeeld.length} shiften)."`
-  - `schoolrooster_screen.dart`, na een geslaagde `slaSchoolroosterOp`: 1
-    melding, bv. `"${profiel.naam} heeft het schoolrooster opgehaald
-    (N schooldagen)."`
-  - `dienst_toevoegen_screen.dart`, na een geslaagde `aanmaken` **en enkel
-    als `widget.voorGebruiker == null`**: 1 melding met de
-    `dienst.naarTekst()`-omschrijving.
-- **`beheer_instellingen_screen.dart`** (uit F7): tweede sectie
-  "Meldingen" - per gezinslid een `SwitchListTile` gekoppeld aan
-  `meldingenAan`, plus bovenaan (enkel zichtbaar/bewerkbaar voor de
-  ingelogde beheerder, over zijn eigen profiel) een schakelaar "Ik wil
-  meldingen ontvangen" gekoppeld aan `wilMeldingen`.
-- **Test:** unit-tests voor `bepaalOntvangers` (verschillende combinaties
-  van rollen + toggles) - dat is het enige deel dat zonder een echt
-  toestel betrouwbaar te testen is. De effectieve pushmelding test Ryan
-  zelf op zijn telefoon (net als F4.3) - een emulator laat dat niet
-  altijd betrouwbaar zien.
+    haalt `GebruikerService.zichtbareGebruikers(acteur.uid)` op (bestond
+    al sinds F8, werkt voor beide rollen - geen nieuwe rules nodig), filtert
+    via `bepaalOntvangers`, en post naar
+    `https://api.onesignal.com/notifications` met `Authorization: Key
+    <rest-key>` en `include_aliases: {external_id: [...]}` +
+    `target_channel: "push"` (geverifieerd tegen OneSignal's actuele
+    REST-documentatie - de oudere `onesignal.com/api/v1/...`-vorm en een
+    `Basic`-header staan nog wel gedocumenteerd op oudere plekken, maar
+    zijn niet meer de aanbevolen vorm). Faalt dit, dan wordt dat volledig
+    genegeerd (`try/catch`) - de dienst zelf is dan al opgeslagen.
+- **Aanroeppunten**, telkens **niet-awaited** (`unawaited(...)`, een
+  melding mag de opslaan-flow niet vertragen) en enkel wanneer iemand
+  **voor zichzelf** iets invult:
+  - `pdf_upload_screen.dart`, na `slaPdfImportOp`.
+  - `schoolrooster_screen.dart`, na `slaSchoolroosterOp`.
+  - `dienst_toevoegen_screen.dart`, na `aanmaken`, **enkel als
+    `widget.voorGebruiker == null`** (F3-toevoegingen door de beheerder
+    voor iemand anders sturen geen melding - die weet het al).
+- **`beheer_instellingen_screen.dart`** (F7): tweede sectie "Meldingen" -
+  bovenaan de algemene schakelaar "Ik wil meldingen ontvangen"
+  (`wilMeldingen`, enkel de eigen rij), daaronder per gezinslid een
+  schakelaar "Stuurt meldingen bij een actie" (`meldingenAan`). Terzelfder
+  tijd de lijst-laadlogica herschreven (`_laadFuture` enkel voor de
+  initiële laadstatus, een apart `_lijst`-veld voor de optimistische
+  updates) - anders sprong de lijst bij elke toggle terug naar boven
+  (de `FutureBuilder` ging eventjes terug naar "laden"), wat met nu 11
+  rijen (5 zichtbaarheid + 1 algemeen + 5 meldingen) te veel opviel.
+
+**Getest in de browser** (beheerder-testaccount): beide secties in het
+Beheer-tab renderen, alle toggles (algemeen + per persoon) slaan op en
+overleven een herlaad, scrollpositie blijft nu behouden na een toggle.
+
+⚠️ **Niet getest: of er écht een pushmelding aankomt.** Dat vereist een
+opnieuw gebouwde/geïnstalleerde Android-app met een geldig OneSignal-
+toestel-abonnement, wat niet mogelijk is vanuit de webbrowser-tool.
+**Actiepunt voor Ryan:** een nieuwe APK bouwen/installeren, inloggen (dat
+koppelt het toestel via `OneSignal.login`), de systeem-pop-up voor
+meldingen toestaan, en dan bv. via het lid-testaccount iets toevoegen om
+te zien of de melding op het beheerder-toestel aankomt.
+
+- **Test:** `test/services/melding_service_test.dart` (5 gevallen voor
+  `bepaalOntvangers`), `test/models/gebruiker_test.dart` uitgebreid met
+  `meldingenAan`/`wilMeldingen`-defaults + `copyWith`.
 
 ---
 

@@ -68,6 +68,19 @@ class GebruikerService {
     await _gebruikers.doc(uid).update({'kleur': hexKleur});
   }
 
+  /// Zet of acties van [uid] een melding naar de beheerder(s) sturen (F11)
+  /// - enkel de beheerder mag dit voor iemand anders aanpassen (zie
+  /// firestore.rules, `gebruikers`-collectie, zelfde regel als F7).
+  static Future<void> zetMeldingenAan(String uid, bool aan) async {
+    await _gebruikers.doc(uid).update({'meldingenAan': aan});
+  }
+
+  /// Zet je eigen "ik wil meldingen ontvangen"-schakelaar (F11) - enkel
+  /// relevant als je zelf beheerder bent, en enkel voor je eigen profiel.
+  static Future<void> zetWilMeldingen(String uid, bool wil) async {
+    await _gebruikers.doc(uid).update({'wilMeldingen': wil});
+  }
+
   static Future<Gebruiker> haalOfMaakProfiel(User account) async {
     final doc = await _gebruikers.doc(account.uid).get();
     if (doc.exists) {

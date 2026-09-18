@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -6,6 +8,7 @@ import '../models/dienst.dart';
 import '../models/gebruiker.dart';
 import '../school/schoolrooster_service.dart';
 import '../services/dienst_service.dart';
+import '../services/melding_service.dart';
 import '../theme.dart';
 import '../widgets/dienst_tile.dart';
 import '../widgets/kleur_kiezer.dart';
@@ -92,6 +95,16 @@ class _SchoolroosterScreenState extends State<SchoolroosterScreen> {
         diensten: voorbeeld,
         jaar: _maand.year,
         maand: _maand.month,
+      );
+      // Niet awaiten: een melding is "nice to have", de opslag hierboven
+      // is al gelukt en de gebruiker hoeft niet te wachten op OneSignal.
+      unawaited(
+        MeldingService.stuurMelding(
+          acteur: widget.profiel,
+          tekst:
+              '${widget.profiel.naam} heeft het schoolrooster opgehaald '
+              '(${voorbeeld.length} schooldagen).',
+        ),
       );
       if (mounted) Navigator.of(context).pop(voorbeeld.length);
     } catch (e) {
