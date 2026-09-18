@@ -20,18 +20,18 @@ class GebruikerService {
     'gebruikers',
   );
 
-  /// Alle profielen - enkel voor de beheerder (die ziet sowieso iedereen,
-  /// zie firestore.rules `isBeheerder()`) of voor schermen die zelf al
-  /// enkel voor de beheerder bereikbaar zijn (bv. het beheer-tab, F7).
-  /// Een gewoon lid gebruikt [zichtbareGebruikers] voor het gezamenlijke
-  /// overzicht (F8).
+  /// Alle profielen, óók onzichtbare (F7) - enkel voor schermen die zelf al
+  /// enkel voor de beheerder bereikbaar zijn (bv. het beheer-tab, F7/F12).
+  /// Bewust niet gebruikt voor het gezamenlijke overzicht: sinds F13 is
+  /// onzichtbaar ook onzichtbaar voor de beheerder daar, zie
+  /// [zichtbareGebruikers].
   static Future<List<Gebruiker>> alleGebruikers() async {
     final snap = await _gebruikers.get();
     return snap.docs.map(Gebruiker.vanDocument).toList();
   }
 
   /// Jezelf + elk gezinslid dat zichtbaar staat (F7) - voor het
-  /// gezamenlijke overzicht van een gewoon lid (F8).
+  /// gezamenlijke overzicht (F8/F13), voor élke rol incluis de beheerder.
   ///
   /// Kan niet gewoon [alleGebruikers] gebruiken: Firestore staat een
   /// ongefilterde lijst-query niet toe als de rule daarvoor per document

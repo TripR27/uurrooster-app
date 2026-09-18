@@ -633,6 +633,10 @@ persoon (en zijn/haar shiften) verschijnt nergens in het gezamenlijke
 overzicht of de afdruk voor gewone leden - enkel beheerders zien hem/haar
 nog.
 
+⚠️ **Bijgesteld in F13:** dat laatste (beheerders zien een onzichtbaar
+gezinslid nog wél) is later teruggedraaid op Ryans verzoek - sinds F13 is
+onzichtbaar ook onzichtbaar voor beheerders, zie F13 hieronder.
+
 **Datamodel:**
 
 - `gebruikers`: nieuw veld `zichtbaarInOverzicht: bool` (default `true` als
@@ -1108,6 +1112,57 @@ van dat bestand).
 
 ---
 
+## F13 — Onzichtbaar is nu ook echt onzichtbaar voor de beheerder ✅ GEDAAN
+
+**Wens (Ryan, na F12):** een gezinslid dat op "onzichtbaar" staat (F7) mag
+ook niet meer verschijnen in het gezamenlijke overzicht en de afdruk vóór
+een **beheerder** - dat was tot nu toe bewust anders (F7/F8: "een
+beheerder ziet altijd iedereen, ongeacht dit veld"), maar Ryan wil dat
+"onzichtbaar" letterlijk onzichtbaar betekent, voor iedereen.
+
+**Wat gebouwd is:**
+
+- **`beheer_overzicht_screen.dart`** (`_laadOverzicht`): de
+  beheerder-specifieke tak (`GebruikerService.alleGebruikers()`) is weg -
+  élke rol haalt nu `GebruikerService.zichtbareGebruikers(uid)` op (die
+  bestond al sinds F8: zichzelf + wie zichtbaar staat). Omdat het
+  gezamenlijke overzicht, de dag-kaarten, de legende, "voor wie toevoegen"
+  (F3) en het printen (`_printen()`) allemaal dezelfde `gebruikers`-lijst
+  hergebruiken, is een onzichtbaar gezinslid nu in één klap nergens meer
+  te zien of af te drukken - ook niet voor de beheerder. `DienstService.
+  voorPeriode` haalt dan ook geen diensten meer op voor een onzichtbaar
+  account, want die zit niet meer in de `gebruikerIds`-lijst die
+  meegegeven wordt.
+- **Enige overblijvende uitzondering (bewust):**
+  `beheer_instellingen_screen.dart` (het beheer-tab zelf, F7/F12) blijft
+  `alleGebruikers()` gebruiken - dat scherm moet wel iedereen tonen, anders
+  zou een onzichtbaar gezinslid nooit meer terug zichtbaar gezet kunnen
+  worden.
+- Geen rules-wijziging nodig: `firestore.rules` liet een beheerder al
+  altijd alles lezen (`isBeheerder()`), dit is puur een client-side
+  filter - dezelfde aanpak als de rest van de zichtbaarheids-/
+  verbergfuncties in de app.
+- Tekst in de "Onzichtbaar"-schakelaar in het beheer-tab (F12) aangepast
+  ("Onzichtbaar maken" i.p.v. "Onzichtbaar voor anderen", subtekst legt nu
+  uit dat het ook voor een beheerder geldt) + het status-chipje in de
+  gezinsledenlijst hernoemd naar gewoon "Onzichtbaar".
+- Documentatie bijgewerkt (`Gebruiker.zichtbaarInOverzicht`,
+  `GebruikerService.alleGebruikers`/`zichtbareGebruikers`) om deze nieuwe
+  regel expliciet te maken, en een kanttekening toegevoegd bij F7 hierboven
+  dat dat gedrag hier is teruggedraaid.
+
+**Niet gewijzigd:** `MeldingService` gebruikte al `zichtbareGebruikers`
+(niet `alleGebruikers`) om te bepalen wie een pushmelding kan krijgen - een
+onzichtbare beheerder kreeg dus al geen meldingen meer; dat gedrag was dus
+al in lijn met deze feature en hoefde niet aangepast te worden.
+
+- **Test:** enkel `flutter analyze` + `flutter test` (bestaande
+  testsuite, geen nieuw gedrag dat apart unit-test-baar is buiten wat
+  `zichtbareGebruikers` al doet) - op uitdrukkelijk verzoek van Ryan niet
+  visueel getest, hij bekijkt dat zelf.
+
+---
+
 ## Mapping & bouwvolgorde
 
 | Ryans nr. | Wens (kort) | Feature | Bouwvolgorde |
@@ -1120,6 +1175,7 @@ van dat bestand).
 | 4 | Eigen kleur per item (persoonlijke agenda) | F10 | 6 - hergebruikt F9's palet |
 | 5 | Meldingen naar beheerder (OneSignal) + toggles | F11 | 7 - grootste, nieuwe dependency, bouwt op F7's scherm |
 | - | Beheer-tab herbouwd: pop-up per gezinslid, bulk/single-meldingen, overzicht verbergen | F12 | 8 - bouwt op F7/F11's scherm |
+| - | Onzichtbaar ook onzichtbaar voor de beheerder | F13 | 9 - bijstelling van F7/F8 |
 
 Per feature: code → `flutter analyze` + `flutter test` → visuele/
 functionele check → commit + push. F7 en F8 vereisen telkens een

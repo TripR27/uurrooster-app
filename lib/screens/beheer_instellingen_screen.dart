@@ -312,10 +312,12 @@ class _GebruikerBeheerDialoogState extends State<_GebruikerBeheerDialoog> {
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Onzichtbaar voor anderen'),
+              title: const Text('Onzichtbaar maken'),
               subtitle: const Text(
                 'Verschijnt dan nergens meer in het gezamenlijke overzicht '
-                'voor gewone leden - enkel beheerders zien deze persoon nog.',
+                'of de afdruk - ook niet voor een beheerder. Enkel hier in '
+                'het beheer-tab blijft deze persoon zichtbaar, om dit weer '
+                'terug te kunnen zetten.',
               ),
               value: _onzichtbaar,
               activeThumbColor: AppKleuren.bosgroen,
@@ -477,7 +479,7 @@ class _GebruikerRij extends StatelessWidget {
                       children: [
                         if (onzichtbaar)
                           const _StatusChip(
-                            tekst: 'Onzichtbaar voor anderen',
+                            tekst: 'Onzichtbaar',
                             icoon: Icons.visibility_off,
                           ),
                         if (overzichtVerborgen)

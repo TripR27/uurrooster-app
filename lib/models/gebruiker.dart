@@ -49,10 +49,14 @@ class Gebruiker {
   final String naam;
   final GebruikerRol rol;
 
-  /// Of dit account zichtbaar is in het gezamenlijke overzicht voor gewone
-  /// leden (F7/F8) - de beheerder zet dit per persoon in het beheer-tab.
-  /// Default `true` (ontbreekt het veld nog in Firestore, dan gewoon
-  /// zichtbaar) - een beheerder ziet altijd iedereen, ongeacht dit veld.
+  /// Of dit account zichtbaar is in het gezamenlijke overzicht (F7/F8) - de
+  /// beheerder zet dit per persoon in het beheer-tab. Default `true`
+  /// (ontbreekt het veld nog in Firestore, dan gewoon zichtbaar). Geldt
+  /// sinds F13 ook voor de beheerder zelf: onzichtbaar is echt onzichtbaar,
+  /// ook op het gezamenlijke overzicht en de afdruk van een andere
+  /// beheerder. Enkel het beheer-tab zelf (`alleGebruikers()`) toont nog
+  /// altijd iedereen - anders zou niemand een onzichtbaar gezinslid nog
+  /// terug zichtbaar kunnen zetten.
   final bool zichtbaarInOverzicht;
 
   /// Of **dit account zelf** het gezamenlijke overzicht mag openen (F12) -

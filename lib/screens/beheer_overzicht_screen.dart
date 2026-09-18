@@ -15,11 +15,12 @@ import 'dienst_toevoegen_screen.dart';
 
 /// Gezamenlijk overzicht van alle (zichtbare) gezinsleden, open voor
 /// iedereen (F8, zie PROJECT_SPEC.md §2/§5) - een lijst dag-kaarten (1
-/// regel per gezinslid) voor de gekozen maand. Een gewoon lid ziet enkel
-/// zichzelf + de gezinsleden die de beheerder zichtbaar heeft gezet (F7) en
-/// kan enkel zijn/haar eigen regels aantikken om te bewerken; printen en
-/// "voor iemand anders toevoegen" (F3) blijven enkel voor de beheerder, die
-/// bovendien altijd iedereen ziet (ongeacht F7) en elke regel mag bewerken.
+/// regel per gezinslid) voor de gekozen maand. Iedereen, óók de beheerder,
+/// ziet enkel zichzelf + de gezinsleden die zichtbaar staan (F7/F13) - een
+/// onzichtbaar gezinslid komt dus nergens meer voor, ook niet in de afdruk.
+/// Een gewoon lid kan enkel zijn/haar eigen regels aantikken om te
+/// bewerken; printen en "voor iemand anders toevoegen" (F3) blijven enkel
+/// voor de beheerder, die wel elke (zichtbare) regel mag bewerken.
 class BeheerOverzichtScreen extends StatefulWidget {
   const BeheerOverzichtScreen({super.key, required this.profiel});
 
@@ -55,11 +56,15 @@ class _BeheerOverzichtScreenState extends State<BeheerOverzichtScreen> {
       DateTime(_maandStart.year, _maandStart.month + 1, 0);
 
   Future<_Overzicht> _laadOverzicht() async {
-    // De beheerder ziet iedereen (F3/F5); een gewoon lid enkel zichzelf +
-    // wie de beheerder zichtbaar heeft gezet (F7/F8).
-    final gebruikers = widget.profiel.isBeheerder
-        ? await GebruikerService.alleGebruikers()
-        : await GebruikerService.zichtbareGebruikers(widget.profiel.uid);
+    // Iedereen, ook de beheerder, ziet hier enkel zichzelf + wie zichtbaar
+    // staat (F7/F13) - onzichtbaar is sinds F13 ook onzichtbaar voor de
+    // beheerder, zowel op dit scherm als op de afdruk (die dezelfde
+    // `gebruikers`-lijst gebruikt, zie _printen()). Enkel het beheer-tab
+    // (`alleGebruikers()`) toont nog iedereen, om dit veld terug te kunnen
+    // zetten.
+    final gebruikers = await GebruikerService.zichtbareGebruikers(
+      widget.profiel.uid,
+    );
     final diensten = await DienstService.voorPeriode(
       gebruikerIds: gebruikers.map((g) => g.uid).toList(),
       vanIso: naarIsoDatum(_maandStart),
