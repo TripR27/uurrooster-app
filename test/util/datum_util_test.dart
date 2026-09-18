@@ -29,4 +29,11 @@ void main() {
       '2026-02-02',
     ]);
   });
+
+  test('isWeekendDag herkent zaterdag en zondag', () {
+    expect(isWeekendDag(DateTime(2026, 7, 4)), isTrue); // zaterdag
+    expect(isWeekendDag(DateTime(2026, 7, 5)), isTrue); // zondag
+    expect(isWeekendDag(DateTime(2026, 7, 6)), isFalse); // maandag
+    expect(isWeekendDag(DateTime(2026, 7, 8)), isFalse); // woensdag
+  });
 }

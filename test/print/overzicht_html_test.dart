@@ -65,4 +65,19 @@ void main() {
     expect(html, contains('&lt;script&gt;'));
     expect(html, contains('&lt;b&gt;test&lt;/b&gt;'));
   });
+
+  test('bouwOverzichtHtml geeft weekend-rijen een aparte klasse', () {
+    final html = bouwOverzichtHtml(
+      // Juli 2026: 4 juli is een zaterdag, 8 juli een woensdag.
+      maandStart: DateTime(2026, 7),
+      gebruikers: const [],
+      diensten: const [],
+    );
+
+    expect(html, contains('<tr class="weekend"><td class="dag">za 04-07'));
+    expect(html, contains('<tr class="weekend"><td class="dag">zo 05-07'));
+    expect(html, isNot(contains('<tr class="weekend"><td class="dag">wo 08-07')));
+    expect(html, contains('<td class="dag">wo 08-07'));
+    expect(html, contains('tr.weekend td { background: #F2E2D5; }'));
+  });
 }

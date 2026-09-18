@@ -49,3 +49,9 @@ const dagAfkortingen = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'];
 String naarDagLabel(DateTime dag) =>
     '${dagAfkortingen[dag.weekday - 1]} '
     '${naarWeergaveDatum(naarIsoDatum(dag)).substring(0, 5)}';
+
+/// Is [dag] een zaterdag of zondag - gedeeld tussen `overzicht_html.dart`
+/// en `overzicht_pdf.dart` om weekend-rijen daar een eigen achtergrond te
+/// geven.
+bool isWeekendDag(DateTime dag) =>
+    dag.weekday == DateTime.saturday || dag.weekday == DateTime.sunday;

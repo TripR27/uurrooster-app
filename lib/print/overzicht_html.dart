@@ -24,6 +24,7 @@ const _stijl = '''
   th, td { border: 1px solid #999; padding: 5px 8px; font-size: 14px;
     text-align: left; white-space: pre-line; vertical-align: top; }
   th, td.dag { background: #e3e3e3; font-weight: bold; }
+  tr.weekend td { background: #F2E2D5; }
   @media print { body { margin: 0; } }
 ''';
 
@@ -57,7 +58,11 @@ String bouwOverzichtHtml({
   for (var dagNr = 1; dagNr <= laatsteDag; dagNr++) {
     final dag = DateTime(maandStart.year, maandStart.month, dagNr);
     final dagIso = naarIsoDatum(dag);
-    buffer.writeln('<tr><td class="dag">${_escape(naarDagLabel(dag))}</td>');
+    final isWeekend = isWeekendDag(dag);
+    buffer.writeln(
+      '<tr${isWeekend ? ' class="weekend"' : ''}>'
+      '<td class="dag">${_escape(naarDagLabel(dag))}</td>',
+    );
     for (final gebruiker in gebruikers) {
       final vanDezeGebruiker = diensten.where(
         (d) => d.gebruikerId == gebruiker.uid && d.valtOpDatum(dagIso),

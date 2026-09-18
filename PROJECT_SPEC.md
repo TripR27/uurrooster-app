@@ -1,9 +1,11 @@
 # Project: Mama's rooster app (gezinsrooster)
 
-Dit document beschrijft **wat de app nu is** (deel A) en **hoe we de 4
-gevraagde nieuwe features aanpakken** (deel B). Het oude "bouwplan met
-fases" en het lopende logboek zijn eruit gehaald: alles wat daarin stond is
-klaar en zit in de git-historiek (`TripR27/uurrooster-app`, branch `main`).
+Dit document beschrijft **wat de app nu is** (deel A), **hoe de eerste 4
+features aangepakt zijn** (deel B, allemaal gedaan) en **hoe we de 7 nieuwe
+features aanpakken** die Ryan daarna gevraagd heeft (deel C, nog te bouwen).
+Het oude "bouwplan met fases" en het lopende logboek zijn eruit gehaald:
+alles wat daarin stond is klaar en zit in de git-historiek
+(`TripR27/uurrooster-app`, branch `main`).
 
 ---
 
@@ -486,3 +488,431 @@ De knop toont dan gewoon "geen lessen gevonden".
 - **Caveat:** de API geeft momenteel enkel het najaarssemester 2025 terug;
   het rooster 2026-2027 is nog niet gepubliceerd door AP. Voor zo'n maand
   toont de knop gewoon "geen lessen gevonden".
+
+---
+
+# DEEL C — 7 nieuwe features: analyse & stappenplan (nog te bouwen)
+
+Ryan heeft 7 uitbreidingen gevraagd (genummerd 1-7 in zijn bericht). Ze
+hangen deels van elkaar af, dus deel C bouwt ze **niet in die volgorde** op
+maar in bouwvolgorde: eerst 2 losse quick wins, dan de
+zichtbaarheid/rechten-basis waar de rest bovenop bouwt, dan kleuren, dan
+meldingen als laatste (grootste, nieuwe externe afhankelijkheid). Onderaan
+staat de mapping + een overzichtstabel.
+
+**Vooraf afgestemd met Ryan:**
+
+- **Meldingen (zijn punt 5):** via een **gratis externe dienst** (OneSignal)
+  i.p.v. een in-app-only meldingencentrum of Firebase Cloud Functions
+  (Blaze-plan, bewust vermeden - zie §3). Zie F11.
+- **Kleur in het gezamenlijk overzicht (zijn punt 3):** **iedereen kiest
+  zelf** zijn/haar kleur, geen beheerder-toewijzing. Zie F9.
+
+Zelfde werkwijze als deel B: per feature eerst de code-wijziging, dan
+`flutter analyze` + `flutter test` + een visuele/functionele check
+(browser-tool of Android-emulator met het testaccount), dan commit + push
+naar `main`. Firestore-rules-wijzigingen publiceert Ryan zelf in de
+console (zoals bij F3).
+
+## Nieuw gedeeld bouwblok: kleurenpalet
+
+F9 en F10 hebben allebei een kleurkiezer nodig, met bewust weinig keuze
+("een stuk of 10 basiskleuren"). Eén plek: `lib/util/kleuren_palet.dart` -
+een vaste `List<(String naam, Color kleur)>` van 10 kleuren (bv. rood,
+oranje, geel, groen, turquoise, blauw, paars, roze, bruin, grijs - exacte
+tinten passend bij `AppKleuren`), + `kleurNaarHex`/`kleurVanHex` om een
+gekozen kleur als string (`"#E0704F"`) in Firestore op te slaan. Eén
+gedeelde widget `_KleurKiezer` (grid van gekleurde bolletjes, aangevinkt
+bolletje toont een vinkje) - waarschijnlijk in datzelfde bestand of een
+losse `lib/widgets/kleur_kiezer.dart`, hergebruikt door F9 en F10.
+
+---
+
+## F5 — Weekend-achtergrond bij het afdrukken (Ryans punt 6)
+
+**Wens:** op het afgedrukte gezamenlijke overzicht moet een weekend-rij (het
+hele rijtje, niet enkel het datumvakje) een lichtjes donkerdere/gekleurde
+achtergrond hebben - mat, niet fel - zodat weekends meteen opvallen.
+
+**Wat te bouwen:**
+
+- **`lib/print/overzicht_html.dart`**: in de rij-loop, als
+  `dag.weekday == DateTime.saturday || dag.weekday == DateTime.sunday`, een
+  CSS-klasse `class="weekend"` op de `<tr>` zetten en in `_stijl` een regel
+  `tr.weekend td { background: #F2E2D5; }` toevoegen - een lichte,
+  gedempte terracotta-tint die bij `AppKleuren.terracotta` past maar mat
+  genoeg blijft om leesbaar te blijven en print-vriendelijk (geen felle
+  kleur, geen inkt-verspilling).
+- **`lib/print/overzicht_pdf.dart`**: `PdfGrid` ondersteunt
+  `cell.style.backgroundBrush` per cel. Na het vullen van een rij: als de
+  dag een weekenddag is, voor elke cel in `rij.cells` (dag-kolom +
+  gebruikerskolommen) `style.backgroundBrush = PdfSolidBrush(PdfColor(242,
+  226, 213))` zetten (zelfde tint als hierboven, RGB-equivalent) - zodat de
+  Android-PDF-export er hetzelfde uitziet als de webversie.
+- **Tests:** `test/print/overzicht_html_test.dart` uitbreiden met een
+  check dat een zaterdag/zondag-`<tr>` de `weekend`-klasse krijgt en een
+  doordeweekse dag niet; `test/print/overzicht_pdf_test.dart` uitbreiden
+  met een check op `backgroundBrush` van een weekend- vs. weekdag-cel.
+- Geen datamodel- of rules-wijziging nodig - dit is zuiver
+  presentatie-laag.
+
+---
+
+## F6 — "ER" als geen-werk-code in Formaat A (Ryans punt 7)
+
+**Wens:** in rooster-formaat A (Ryan & mama) komt ook de code "ER" voor
+(vast gecontroleerd in `uurroosters/uurrooster-ryan.pdf`, rij "Blanpain,
+Koen": `C8   ER 8u  FDrec  VAK`) - net als "FDrec" betekent dit: geen
+werkdag, vakje moet leeg blijven.
+
+**Wat er nu gebeurt:** `FormaatAParser._leesDienstenUitRij` groepeert per
+dag-kolom de tekstlijnen (`cellen`) en behandelt enkel een groep van **3+
+lijnen waarvan lijn 2 en 3 een geldige "HH:MM"-tijd zijn** als een
+werkdienst; alles anders (leeg, of "FDrec" op 1 lijn) wordt al overgeslagen
+via de bestaande `if (cellen.length < 3) continue;`-check. Voor "ER 8u"
+(één lijn, geen apart begin-/einduur) werkt die check dus vermoedelijk al -
+maar de code kijkt nooit expliciet naar wélke code er staat, dus een
+toekomstige PDF-layout waarin "ER" wél met 2 tijd-achtige lijnen erna
+staat, zou foutief als werkdienst ingelezen worden. Dat lossen we defensief
+op, zoals Ryan vraagt ("moet geskipt worden als fdRecup").
+
+**Wat te bouwen:**
+
+- In `formaat_a_parser.dart`: een `_geenWerkCodePatroon = RegExp(r'^(fdrec|er)\b', caseSensitive: false)`.
+  Vóór de bestaande lengte-/tijd-checks in `_leesDienstenUitRij`: als de
+  **eerste** lijn van een dag-kolom (na sorteren op `top`) hierop matcht,
+  die dag-kolom overslaan (`continue`) - ongeacht hoeveel lijnen erna
+  volgen of wat erin staat.
+- **Test:** nieuw testgeval in
+  `test/pdf_import/formaat_a_parser_test.dart` tegen het **echte**
+  bestand `uurroosters/uurrooster-ryan.pdf`, met
+  `FormaatAParser(naamInRooster: 'Blanpain, Koen')` (die rij bevat de
+  bevestigde "ER 8u" op de dag met `FDrec` ernaast) - controleren dat die
+  specifieke dag geen dienst oplevert. Dat is meteen een test tegen
+  échte data, in lijn met Ryans stijlvoorkeur (§10).
+- Geen wijziging aan Formaat B (Amy) - dat is expliciet enkel voor
+  Formaat A gevraagd.
+
+---
+
+## F7 — Beheerder-tab: zichtbaarheid per gezinslid (Ryans punt 2)
+
+**Wens:** een beheerder-tabje waar Ryan per persoon kan aan-/uitvinken of
+die persoon zichtbaar is in het gezamenlijke rooster. Onzichtbaar = die
+persoon (en zijn/haar shiften) verschijnt nergens in het gezamenlijke
+overzicht of de afdruk voor gewone leden - enkel beheerders zien hem/haar
+nog.
+
+**Datamodel:**
+
+- `gebruikers`: nieuw veld `zichtbaarInOverzicht: bool` (default `true` als
+  het veld ontbreekt - bestaande profielen hoeven niet gemigreerd te
+  worden, `Gebruiker.vanDocument` leest `data['zichtbaarInOverzicht'] as
+  bool? ?? true`).
+
+**Nieuw scherm:** `lib/screens/beheer_instellingen_screen.dart` -
+enkel bereikbaar voor de beheerder, via een nieuwe menukaart "Beheer" op
+`HomeScreen` (icoon `Icons.admin_panel_settings`, enkel `if
+(profiel.isBeheerder)`). Toont een lijst van `GebruikerService.alleGebruikers()`
+met per rij een `SwitchListTile` "Zichtbaar in gezamenlijk overzicht"
+gekoppeld aan `zichtbaarInOverzicht` (opslaan via een nieuwe
+`GebruikerService.bijwerkenVeld(uid, {...})`-achtige update-call). De
+beheerder zelf hoort hier niet als schakelbare rij in te staan - die is
+per definitie altijd zichtbaar voor zichzelf.
+
+Dit scherm krijgt in F11 een tweede sectie (meldingen) - vandaar de naam
+"Beheer" i.p.v. "Zichtbaarheid", en vandaar dat dit vóór F8 gebouwd wordt:
+F8's rules hebben dit veld al nodig.
+
+**Firestore rules (`gebruikers`)** - enkel de beheerder mag dit veld
+zetten, dat volgt al uit de bestaande `update`-rule (elk account mag zijn
+**eigen** profiel bijwerken, maar de beheerder-tab schrijft naar **andermans**
+profiel). De huidige rule staat dat niet toe:
+
+```
+allow update: if eigenGebruiker(uid) &&
+  request.resource.data.rol == resource.data.rol;
+```
+
+→ wordt:
+
+```
+allow update: if (eigenGebruiker(uid) &&
+    request.resource.data.rol == resource.data.rol) ||
+  isBeheerder();
+```
+
+(De beheerder mag alles aan andermans profiel bijwerken - in de praktijk
+enkel `zichtbaarInOverzicht` en, na F11, de meldingen-toggle. Zelfde
+vertrouwensmodel als F3 bij `diensten`.)
+
+- **Test:** widget-test voor het nieuwe scherm (toggle omzetten roept de
+  juiste service-call aan) + een simpele check dat `Gebruiker.vanDocument`
+  `true` teruggeeft als het veld ontbreekt.
+
+---
+
+## F8 — Gezamenlijk overzicht zichtbaar voor iedereen (Ryans punt 1)
+
+**Wens:** iedereen (niet enkel de beheerder) kan het gezamenlijke rooster
+bekijken. Enkel de beheerder mag daarin dingen van **anderen** aanpassen -
+een lid past, zoals nu al, enkel zijn/haar eigen shiften aan (via "Mijn
+shiften"), en ziet enkel zichzelf + de gezinsleden die de beheerder
+zichtbaar heeft gezet (F7).
+
+**Wat te bouwen:**
+
+- **`home_screen.dart`**: de menukaart "Gezamenlijk overzicht" verliest de
+  `if (profiel.isBeheerder)`-voorwaarde - iedereen ziet en opent hem.
+- **`beheer_overzicht_screen.dart`** (bestandsnaam/klasnaam bewust
+  ongewijzigd gelaten - een hernoeming is pure cosmetiek en hoort niet bij
+  deze feature):
+  - `_laadOverzicht()`: `GebruikerService.alleGebruikers()` blijft
+    ongewijzigd aangeroepen, maar dankzij de aangepaste rules (zie
+    hieronder) krijgt een gewoon lid daar automatisch enkel zichzelf +
+    zichtbare gezinsleden van terug - geen extra filter-code nodig in de
+    Dart-laag.
+  - Tikken op een regel (`_bewerk`): enkel doorlaten naar
+    `DienstBewerkenScreen` als `dienst.gebruikerId == widget.profiel.uid ||
+    widget.profiel.isBeheerder` - anders niets doen (rij is dan puur
+    informatief voor een gewoon lid dat naar andermans shift kijkt).
+  - FAB "Toevoegen" (voor een gezinslid kiezen, F3) en de print-knop
+    blijven **enkel voor de beheerder** zichtbaar (`if
+    (widget.profiel.isBeheerder)`) - dat is nooit gevraagd voor gewone
+    leden en blijft dus buiten scope.
+- **Firestore rules (`diensten`)** - het lezen moet uitgebreid worden van
+  "enkel jezelf of de beheerder" naar "jezelf, de beheerder, of eender wie
+  van wie het profiel zichtbaar is":
+
+```
+function eigenaarZichtbaar(gebruikerId) {
+  return get(/databases/$(database)/documents/gebruikers/$(gebruikerId))
+    .data.get('zichtbaarInOverzicht', true) == true;
+}
+
+allow read: if isSignedIn() &&
+  (resource.data.gebruikerId == request.auth.uid ||
+   isBeheerder() ||
+   eigenaarZichtbaar(resource.data.gebruikerId));
+```
+
+- **Firestore rules (`gebruikers`)** - lezen moet ook open voor iedereen
+  zolang het gaat om een zichtbaar profiel (nodig om namen/kleuren (F9) in
+  het gezamenlijke overzicht te tonen; een onzichtbaar profiel blijft
+  volledig verborgen voor niet-beheerders, dus ook zijn naam duikt nergens
+  op):
+
+```
+allow read: if eigenGebruiker(uid) || isBeheerder() ||
+  (isSignedIn() && resource.data.get('zichtbaarInOverzicht', true) == true);
+```
+
+  Firestore past deze rule per document toe, ook bij
+  `GebruikerService.alleGebruikers()` se ongefilterde `.get()` op de hele
+  collectie - een gewoon lid krijgt dus automatisch enkel de toegestane
+  documenten terug, geen "permission-denied" op de hele lijst.
+- **Client-side data ophalen blijft ongewijzigd** (`DienstService.voorPeriode`
+  doet nu al 1 losse `where('gebruikerId', ...)`-query per gebruiker - dat
+  patroon blijft identiek, enkel wie de aanroep doet verandert).
+- **Test:** met de Firebase-emulator (of gewoon handmatig met het
+  testaccount + een 2e testaccount) controleren dat een lid het
+  overzicht ziet, een onzichtbaar gezinslid er niet in verschijnt, en een
+  tik op andermans rij niets doet.
+
+---
+
+## F9 — Eigen kleur in het gezamenlijk overzicht (Ryans punt 3)
+
+**Wens:** elk gezinslid kiest zelf een vaste kleur voor zijn/haar bolletje
+in het gezamenlijke overzicht (Amy altijd roze, Ryan altijd groen, ...).
+
+**Datamodel:** `gebruikers` krijgt `kleur: String?` (hex, bv. `"#E0704F"`),
+`null` = nog geen kleur gekozen → dan een neutrale standaardkleur tonen
+(bv. `AppKleuren.bosgroen`, de huidige hardcoded kleur).
+
+**Wat te bouwen:**
+
+- **`beheer_overzicht_screen.dart` → `_DagKaart`**: het hardcoded
+  `AppKleuren.terracotta`-bolletje (regel ~327) wordt
+  `Color(int.parse((kleurHex ?? '#1F6F5C').substring(1), radix: 16) +
+  0xFF000000)` (of via de `kleurVanHex`-helper uit F9's palet-bestand) -
+  gebaseerd op de kleur van de **eigenaar** van die regel (elke regel toont
+  al `(naam, dienst)`, dus de bijhorende `Gebruiker.kleur` moet meegegeven
+  worden vanaf `_Overzicht`/`_dagKaarten`).
+- **Zelf instellen:** een klein "Mijn kleur"-knopje/icoon in de appbar van
+  `BeheerOverzichtScreen` (zichtbaar voor iedereen, niet enkel de
+  beheerder) dat de gedeelde `_KleurKiezer` (zie boven) in een
+  bottom-sheet opent en de keuze wegschrijft naar het **eigen** profiel
+  (`gebruikers/{eigen-uid}`) - dat mag al met de bestaande rules (iedereen
+  mag zijn eigen profiel bijwerken, zolang `rol` niet verandert).
+- Een kleine legende (naam + bolletje per zichtbaar gezinslid) bovenaan het
+  overzicht is een logische toevoeging zodat je weet welke kleur bij wie
+  hoort, zeker voor wie de kleuren nog niet uit het hoofd kent.
+- **Test:** widget-test dat de juiste kleur uit `Gebruiker.kleur` gebruikt
+  wordt, en dat `null` netjes terugvalt op de standaardkleur.
+
+---
+
+## F10 — Eigen kleur per item in de persoonlijke agenda (Ryans punt 4)
+
+**Wens:** los van de vaste "wie ben ik"-kleur uit F9, wil Ryan per item in
+zijn **eigen** agenda een eigen kleurtje kunnen kiezen (werk = blauw,
+privé = roze, een vakantie = groen, ...) - dus per `Dienst`, niet per
+gebruiker.
+
+**Datamodel:** `diensten` krijgt `kleur: String?` (hex), `null` = nog geen
+kleur gekozen (bv. bestaande diensten van vóór deze feature) → een
+neutrale grijstint tonen. Bewust **losstaand** van `gebruikers.kleur`
+(F9) - dat blijft enkel de "wie ben ik"-kleur in het gezamenlijke
+overzicht.
+
+**Wat te bouwen:**
+
+- **`lib/models/dienst.dart`**: `kleur` als nieuw optioneel veld,
+  `naarDocument()`/`vanDocument()` uitbreiden (zelfde patroon als
+  `eindDatum`/`heleDag` in F2 - geen migratie nodig).
+- **`lib/widgets/dienst_formulier.dart`**: de gedeelde `_KleurKiezer` (zie
+  boven) toevoegen onder "Omschrijving", `DienstConcept` krijgt een
+  `kleur`-veld erbij. Gebruikt door zowel Toevoegen als Bewerken.
+- **`lib/widgets/dienst_tile.dart`**: het leading-icoon (of een klein
+  gekleurd streepje/bolletje ernaast) kleuren volgens `dienst.kleur`.
+- **`shiften_screen.dart`**: de kalenderbolletjes (`markerDecoration`) van
+  `table_calendar` tonen nu een vaste `AppKleuren.terracotta`; bij
+  meerdere diensten op 1 dag met verschillende kleuren volstaat
+  `table_calendar`'s standaard "1 bolletje per event" (het pakket
+  ondersteunt een lijst van marker-kleuren via `calendarBuilders.markerBuilder`)
+  - dat is de enige plek die net iets meer maatwerk vraagt dan een simpele
+    kleur-swap.
+- **PDF-/schoolrooster-import** (`pdf_upload_screen.dart`,
+  `schoolrooster_screen.dart`): vóór "Opslaan" een kleurkiezer tonen
+  ("Welke kleur voor deze import?") die **op de hele batch** wordt
+  toegepast (bv. alle geïmporteerde werkshiften worden blauw) - nadien is
+  elk item individueel aan te passen via Bewerken. Optioneel: een
+  onthouden "laatst gebruikte kleur per bron" (client-side, bv.
+  `SharedPreferences`) zodat je niet élke maand opnieuw moet kiezen - dit
+  is een nice-to-have, geen harde eis; enkel bouwen als het na F10 nog
+  simpel blijft, anders gewoon elke keer laten kiezen met een zinnig
+  voorstel (vorige keer gekozen kleur, indien bekend uit de bestaande
+  diensten van die maand).
+- **Print** (`overzicht_html.dart`/`overzicht_pdf.dart`): **niet**
+  aanpassen voor deze feature - dat is niet gevraagd (die print toont al
+  tekst, geen bolletjes) en blijft dus buiten scope, in lijn met "geen
+  features toevoegen die niet gevraagd zijn".
+- **Test:** `test/models/dienst_test.dart` uitbreiden met
+  `kleur`-serialisatie (net als `heleDag`/`eindDatum` nu al getest
+  worden).
+
+---
+
+## F11 — Meldingen voor de beheerder via OneSignal (Ryans punt 5)
+
+**Wens:** de beheerder krijgt een melding wanneer iemand iets invult - 1
+melding per PDF-import (batch, niet per losse shift) en 1 melding per
+handmatig toegevoegd item. Aan/uit te zetten per persoon én algemeen, in
+het beheerder-tab (F7's scherm).
+
+**Waarom niet gewoon Firebase:** een Firestore-write kan geen client
+rechtstreeks pushen naar een andere client zonder een server ertussen
+(vandaar de "1 melding per gebeurtenis"-eis, geen polling). Firebase Cloud
+Messaging zelf is gratis, maar het *versturen* van een gerichte melding
+vanuit een client-event vereist normaal een Cloud Function (trigger op een
+Firestore-write) - en dat vereist het betaalde Blaze-plan, wat dit project
+bewust vermijdt (zie §3). Ryan koos daarom voor een gratis externe dienst.
+
+**Gekozen dienst: [OneSignal](https://onesignal.com)** (gratis tier,
+ruim voldoende voor een gezinsapp van een handvol accounts). Ondersteunt
+Android + web, en laat toe rechtstreeks vanuit de app (zonder eigen
+server) een REST-call te doen om een gerichte melding te versturen.
+
+⚠️ **Belangrijke afweging om met Ryan te bevestigen voor het bouwen:**
+zonder eigen server moet de OneSignal **REST API-key** mee in de
+gecompileerde app (APK/web-build) zitten om een melding te kunnen
+versturen - net zoals de Firebase-config nu al in `.env`/`.env.android`
+zit. Wie de APK decompileert kan die key vinden en er ongewenste
+meldingen mee versturen naar het gezin (een hinderlijk risico, **geen**
+datalek - Firestore-rules blijven de échte data beschermen). Dat is
+hetzelfde soort bewuste trade-off als de anonieme WebUntis-API in F4:
+aanvaardbaar voor een kleine privé-gezinsapp, maar het is Ryans keuze om
+dat zo te bevestigen voor het bouwen.
+
+**Datamodel:**
+
+- `gebruikers`: `meldingenAan: bool` (default `true`) - of acties van
+  **deze persoon** (PDF-import, handmatig item toevoegen) een melding naar
+  de beheerder(s) sturen. Instelbaar per persoon in het beheerder-tab
+  (F7's scherm, sectie "Meldingen").
+- `gebruikers`: `wilMeldingen: bool` (default `true`) - enkel relevant als
+  deze persoon zelf beheerder is: de algemene aan/uit-schakelaar ("wil ík
+  als beheerder meldingen ontvangen"). Bij meerdere beheerders in de
+  toekomst heeft elke beheerder zijn eigen schakelaar.
+
+**Wat te bouwen:**
+
+- **Dependency:** `onesignal_flutter` toevoegen aan `pubspec.yaml`.
+  `ONESIGNAL_APP_ID` (publiek, mag in `.env`) en
+  `ONESIGNAL_REST_API_KEY` (gevoelig, zelfde behandeling als de
+  Firebase-keys: in `.env`/`.env.android`, nooit hardcoded, nooit in git)
+  toevoegen - Ryan maakt zelf een gratis OneSignal-account + app aan en
+  bezorgt die twee waarden.
+- **`main.dart`**: OneSignal initialiseren met de App-ID, en na een
+  geslaagde login `OneSignal.login(account.uid)` aanroepen (koppelt het
+  toestel aan de Firebase-uid als "External ID" - zo weet je exact wie een
+  melding moet krijgen zonder zelf device-tokens te moeten bijhouden).
+  Op Android ook `OneSignal.Notifications.requestPermission(true)` (nodig
+  vanaf Android 13).
+- **Nieuwe service** `lib/services/melding_service.dart`:
+  - `bepaalOntvangers(List<Gebruiker> alleGebruikers, Gebruiker acteur) ->
+    List<Gebruiker>` - **pure functie, apart unit-testbaar**: alle
+    beheerders met `wilMeldingen == true`, maar enkel als
+    `acteur.meldingenAan == true` (en de acteur zelf niet meetellen als
+    die toevallig ook beheerder is - je hoeft geen melding over je eigen
+    actie te krijgen).
+  - `stuurMelding({required Gebruiker acteur, required String tekst})` -
+    zoekt ontvangers via bovenstaande functie, en doet per ontvanger (of
+    in 1 call met een lijst External IDs) een `http.post` naar
+    `https://onesignal.com/api/v1/notifications` met de REST-key in de
+    `Authorization`-header, `include_aliases: {external_id: [...]}` en de
+    tekst. Faalt dit (geen internet, OneSignal down, ...) dan mag dat de
+    opslag van de dienst zelf nooit blokkeren - `try/catch`, gewoon
+    negeren/loggen, de shift is dan al opgeslagen.
+- **Aanroeppunten** (enkel wanneer iemand **voor zichzelf** iets invult -
+  niet wanneer de beheerder vanuit het gezamenlijke overzicht iets voor
+  een ander toevoegt, F3/F8 - dat weet de beheerder al):
+  - `pdf_upload_screen.dart`, na een geslaagde `slaPdfImportOp`: 1 melding,
+    bv. `"${profiel.naam} heeft een PDF ingelezen (${voorbeeld.length} shiften)."`
+  - `schoolrooster_screen.dart`, na een geslaagde `slaSchoolroosterOp`: 1
+    melding, bv. `"${profiel.naam} heeft het schoolrooster opgehaald
+    (N schooldagen)."`
+  - `dienst_toevoegen_screen.dart`, na een geslaagde `aanmaken` **en enkel
+    als `widget.voorGebruiker == null`**: 1 melding met de
+    `dienst.naarTekst()`-omschrijving.
+- **`beheer_instellingen_screen.dart`** (uit F7): tweede sectie
+  "Meldingen" - per gezinslid een `SwitchListTile` gekoppeld aan
+  `meldingenAan`, plus bovenaan (enkel zichtbaar/bewerkbaar voor de
+  ingelogde beheerder, over zijn eigen profiel) een schakelaar "Ik wil
+  meldingen ontvangen" gekoppeld aan `wilMeldingen`.
+- **Test:** unit-tests voor `bepaalOntvangers` (verschillende combinaties
+  van rollen + toggles) - dat is het enige deel dat zonder een echt
+  toestel betrouwbaar te testen is. De effectieve pushmelding test Ryan
+  zelf op zijn telefoon (net als F4.3) - een emulator laat dat niet
+  altijd betrouwbaar zien.
+
+---
+
+## Mapping & bouwvolgorde
+
+| Ryans nr. | Wens (kort) | Feature | Bouwvolgorde |
+| --- | --- | --- | --- |
+| 6 | Weekend-achtergrond bij printen | F5 | 1 - los, snel |
+| 7 | "ER"-code overslaan (Formaat A) | F6 | 2 - los, snel |
+| 2 | Beheerder-tab: zichtbaarheid per persoon | F7 | 3 - basis voor F8 |
+| 1 | Gezamenlijk rooster zichtbaar voor iedereen | F8 | 4 - bouwt op F7 |
+| 3 | Eigen kleur bolletje (gezamenlijk, zelf te kiezen) | F9 | 5 - bouwt op F8's scherm |
+| 4 | Eigen kleur per item (persoonlijke agenda) | F10 | 6 - hergebruikt F9's palet |
+| 5 | Meldingen naar beheerder (OneSignal) + toggles | F11 | 7 - grootste, nieuwe dependency, bouwt op F7's scherm |
+
+Per feature: code → `flutter analyze` + `flutter test` → visuele/
+functionele check → commit + push. F7 en F8 vereisen telkens een
+rules-publicatie door Ryan (zoals F3); F11 vereist eerst een gratis
+OneSignal-account + App-ID/REST-key van Ryan voordat die feature gebouwd
+kan worden.

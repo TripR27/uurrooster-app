@@ -55,10 +55,16 @@ Future<Uint8List> genereerOverzichtPdf({
       headerRij.cells[i + 1].value = gebruikers[i].naam;
     }
 
+    // Mat, print-vriendelijk tintje voor weekend-rijen (zaterdag/zondag) -
+    // zelfde kleur als de webversie (overzicht_html.dart), zodat een
+    // weekend meteen opvalt zonder fel te ogen.
+    final weekendBrush = PdfSolidBrush(PdfColor(242, 226, 213));
+
     final laatsteDag = DateTime(maandStart.year, maandStart.month + 1, 0).day;
     for (var dagNr = 1; dagNr <= laatsteDag; dagNr++) {
       final dag = DateTime(maandStart.year, maandStart.month, dagNr);
       final dagIso = naarIsoDatum(dag);
+      final isWeekend = isWeekendDag(dag);
       final rij = grid.rows.add();
       rij.cells[0].value = naarDagLabel(dag);
       for (var i = 0; i < gebruikers.length; i++) {
@@ -70,6 +76,12 @@ Future<Uint8List> genereerOverzichtPdf({
             : vanDezeGebruiker
                   .map((d) => d.naarTekst(scheidingVoorOmschrijving: '\n'))
                   .join('\n');
+      }
+      if (isWeekend) {
+        // Het hele rijtje, niet enkel de datumkolom.
+        for (var i = 0; i < rij.cells.count; i++) {
+          rij.cells[i].style.backgroundBrush = weekendBrush;
+        }
       }
     }
 
