@@ -180,14 +180,26 @@ Tests: `test/print/overzicht_html_test.dart`, `test/print/overzicht_pdf_test.dar
 - **Accounts (Firebase Auth → Users):**
   - `wytersryan@gmail.com` — Ryan, beheerder, `roosterFormaat: A`,
     `naamInRooster: "Wyters, Ryan"`.
-  - Een testaccount (e-mail + wachtwoord) — beheerder, `roosterFormaat: A`,
-    `naamInRooster: "Wyters, Ryan"`. Enkel voor Claude om mee te testen
-    (Ryans eigen rooster kan hiermee geüpload worden). Geen echt gezinslid.
-    **De inloggegevens staan niet in dit document maar in `.env`** (Ryan
-    beheert die zelf) — als Claude niet kan/mag inloggen (bv. Ryan is zelf
-    aan het testen), staan de gegevens tijdelijk niet in `.env` of is er
-    voor gevraagd even niet in te loggen; dan gewoon niet inloggen tot
-    Ryan expliciet zegt dat het weer kan.
+  - **Twee testaccounts voor Claude, met verschillende rol/config** - zo is
+    zowel de beheerder- als de lid-kant van de app te testen, en zowel
+    Formaat A als Formaat B PDF-import:
+    - **Testaccount 1** — beheerder, `naamInRooster: "Amy"`,
+      `roosterFormaat: B`, `webuntisKlasId`/`webuntisMinor` ingevuld (kan
+      dus ook het schoolrooster (F4) testen). Gebruik dit account voor
+      alles wat beheerder-rechten vereist (Beheer-tab, printen, F3) en
+      voor Formaat B-/schoolrooster-import.
+    - **Testaccount 2** — gewoon lid, `naamInRooster: "Wyters, Ryan"`,
+      `roosterFormaat: A`. Gebruik dit account om de leden-kant te testen
+      (wat een gewoon lid wel/niet mag zien of aanpassen, zie F8) en voor
+      Formaat A-import.
+    Geen van beide is een echt gezinslid. **De inloggegevens staan niet in
+    dit document maar in `.env`** (Ryan beheert die zelf, met een
+    commentaarregel erboven die zegt welk account welke rol/config heeft)
+    — als Claude niet kan/mag inloggen (bv. Ryan is zelf aan het testen),
+    staan de gegevens tijdelijk niet in `.env` of is er voor gevraagd even
+    niet in te loggen; dan gewoon niet inloggen tot Ryan expliciet zegt
+    dat het weer kan. Kies bij elke stap het account waarvan de rol/config
+    past bij wat er getest moet worden.
   - Amy & mama: nog aan te maken door Ryan (Auth → Add user; daarna
     eventueel `roosterFormaat`/`naamInRooster` toevoegen). Amy's echte
     ~25 shiften (juni–aug 2026) staan wel al in Firestore.
