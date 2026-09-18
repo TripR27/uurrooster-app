@@ -9,6 +9,11 @@ import 'rooster_parser.dart';
 /// Herkent een tijd-cel zoals "08:30".
 final _tijdPatroon = RegExp(r'^\d{2}:\d{2}$');
 
+/// Codes die altijd "geen werk" betekenen, ongeacht wat er verder in die
+/// dag-kolom staat - bv. "FDrec" (recuperatiedag) of "ER" (bv. "ER 8u").
+/// Zo'n vakje moet leeg blijven, nooit als werkdienst ingelezen worden.
+final _geenWerkCodePatroon = RegExp(r'^(fdrec|er)\b', caseSensitive: false);
+
 /// Herkent "Periode: 1-7-2026 tot 1-8-2026" (we gebruiken enkel de
 /// startdatum, als basis-maand/jaar voor de dag-kolommen).
 final _periodePatroon = RegExp(r'Periode:\s*(\d{1,2})-(\d{1,2})-(\d{4})');
@@ -234,6 +239,10 @@ class FormaatAParser implements RoosterParser {
     for (final entry in perKolom.entries) {
       final cellen = entry.value
         ..sort((a, b) => a.bounds.top.compareTo(b.bounds.top));
+
+      // Een geen-werk-code (bv. "FDrec", "ER") staat altijd op de eerste
+      // lijn van de dag-kolom - die dag overslaan ongeacht wat erna komt.
+      if (_geenWerkCodePatroon.hasMatch(cellen.first.text.trim())) continue;
 
       // Een werkdag heeft altijd: [code, begintijd, eindtijd, ...]. Alles
       // anders (leeg, "FDrec" + "up", een code zonder tijden) is een dag
