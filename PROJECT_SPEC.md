@@ -180,10 +180,14 @@ Tests: `test/print/overzicht_html_test.dart`, `test/print/overzicht_pdf_test.dar
 - **Accounts (Firebase Auth → Users):**
   - `wytersryan@gmail.com` — Ryan, beheerder, `roosterFormaat: A`,
     `naamInRooster: "Wyters, Ryan"`.
-  - `claude@test.com` (wachtwoord `testing123`) — testaccount van Ryan,
-    beheerder, `roosterFormaat: A`, `naamInRooster: "Wyters, Ryan"`. Enkel
-    voor Claude om mee te testen (Ryans eigen rooster kan hiermee geüpload
-    worden). Geen echt gezinslid.
+  - Een testaccount (e-mail + wachtwoord) — beheerder, `roosterFormaat: A`,
+    `naamInRooster: "Wyters, Ryan"`. Enkel voor Claude om mee te testen
+    (Ryans eigen rooster kan hiermee geüpload worden). Geen echt gezinslid.
+    **De inloggegevens staan niet in dit document maar in `.env`** (Ryan
+    beheert die zelf) — als Claude niet kan/mag inloggen (bv. Ryan is zelf
+    aan het testen), staan de gegevens tijdelijk niet in `.env` of is er
+    voor gevraagd even niet in te loggen; dan gewoon niet inloggen tot
+    Ryan expliciet zegt dat het weer kan.
   - Amy & mama: nog aan te maken door Ryan (Auth → Add user; daarna
     eventueel `roosterFormaat`/`naamInRooster` toevoegen). Amy's echte
     ~25 shiften (juni–aug 2026) staan wel al in Firestore.
@@ -514,6 +518,11 @@ Zelfde werkwijze als deel B: per feature eerst de code-wijziging, dan
 naar `main`. Firestore-rules-wijzigingen publiceert Ryan zelf in de
 console (zoals bij F3).
 
+**Dit document wordt na élke stap bijgewerkt** (feature op ✅ GEDAAN zetten,
+nieuwe deelbeslissingen/afwijkingen van het plan toevoegen) - zo kan Ryan in
+een andere chat gewoon "lees PROJECT_SPEC.md en doe verder" zeggen zonder
+eerst de hele geschiedenis te moeten navertellen.
+
 ## Nieuw gedeeld bouwblok: kleurenpalet
 
 F9 en F10 hebben allebei een kleurkiezer nodig, met bewust weinig keuze
@@ -528,7 +537,7 @@ losse `lib/widgets/kleur_kiezer.dart`, hergebruikt door F9 en F10.
 
 ---
 
-## F5 — Weekend-achtergrond bij het afdrukken (Ryans punt 6)
+## F5 — Weekend-achtergrond bij het afdrukken (Ryans punt 6) ✅ GEDAAN
 
 **Wens:** op het afgedrukte gezamenlijke overzicht moet een weekend-rij (het
 hele rijtje, niet enkel het datumvakje) een lichtjes donkerdere/gekleurde
@@ -555,10 +564,19 @@ achtergrond hebben - mat, niet fel - zodat weekends meteen opvallen.
   met een check op `backgroundBrush` van een weekend- vs. weekdag-cel.
 - Geen datamodel- of rules-wijziging nodig - dit is zuiver
   presentatie-laag.
+- **Bijkomende fix (ontdekt bij Ryans eigen test):** de weekend-kleur
+  verscheen niet bij het afdrukken vanuit de browser. Oorzaak: browsers
+  laten achtergrondkleuren standaard weg bij `window.print()`, tenzij de
+  gebruiker zelf "Achtergrondafbeeldingen" aanvinkt in het printvenster.
+  Opgelost met `print-color-adjust: exact` (+ `-webkit-`-variant) in
+  `_stijl` in `overzicht_html.dart` - forceert dat achtergrondkleuren
+  altijd meeprinten. Raakt enkel de webversie (`printen_web.dart`); de
+  Android-PDF-export (`overzicht_pdf.dart`) kent dit probleem niet, die
+  tekent de kleur rechtstreeks in het PDF-bestand.
 
 ---
 
-## F6 — "ER" als geen-werk-code in Formaat A (Ryans punt 7)
+## F6 — "ER" als geen-werk-code in Formaat A (Ryans punt 7) ✅ GEDAAN
 
 **Wens:** in rooster-formaat A (Ryan & mama) komt ook de code "ER" voor
 (vast gecontroleerd in `uurroosters/uurrooster-ryan.pdf`, rij "Blanpain,
